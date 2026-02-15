@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Casa Multiplayer - Remastered</title>
+    <title>Casa Multiplayer - Versão Estável</title>
     <style>
         /* --- ESTILOS GERAIS --- */
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: white; touch-action: none; }
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; touch-action: none; }
         canvas { display: block; width: 100%; height: 100%; }
 
         /* --- TELA DE LOGIN --- */
@@ -14,68 +14,55 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 10;
+            z-index: 1000;
         }
         .card {
             background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);
-            padding: 30px; border-radius: 15px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            text-align: center; border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 30px; border-radius: 15px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center; border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        input {
-            display: block; width: 250px; margin: 10px auto; padding: 12px;
-            border-radius: 5px; border: none; outline: none; background: rgba(255,255,255,0.9);
-        }
-        button {
-            padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer;
-            font-weight: bold; text-transform: uppercase; transition: 0.3s; margin: 5px;
-        }
+        input { display: block; width: 250px; margin: 10px auto; padding: 12px; border-radius: 5px; border: none; outline: none; }
+        button { padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; text-transform: uppercase; margin: 5px; }
         .btn-green { background: #4CAF50; color: white; }
         .btn-blue { background: #2196F3; color: white; }
-        button:hover { transform: scale(1.05); filter: brightness(1.1); }
 
-        /* --- CHAT E UI DO JOGO --- */
+        /* --- CHAT ATUALIZADO --- */
         #game-ui { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         
         #chat-container {
-            position: absolute; bottom: 20px; left: 20px; width: 350px; height: 250px;
-            background: rgba(0, 0, 0, 0.5); border-radius: 10px; padding: 10px;
+            position: absolute; bottom: 20px; left: 20px; width: 350px; height: 220px;
+            background: rgba(0, 0, 0, 0.6); border-radius: 10px; padding: 10px;
             display: flex; flex-direction: column; pointer-events: auto;
         }
-        @media (max-width: 600px) { #chat-container { width: 60%; height: 180px; left: 10px; bottom: 10px; } }
+        #messages { flex: 1; overflow-y: auto; color: #fff; font-size: 14px; margin-bottom: 8px; }
+        #messages div { margin-bottom: 4px; line-height: 1.3; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
-        #messages {
-            flex: 1; overflow-y: auto; color: #ddd; font-size: 14px; text-shadow: 1px 1px 1px #000;
-            margin-bottom: 5px; scrollbar-width: thin;
-        }
-        #messages div { margin-bottom: 4px; line-height: 1.4; word-wrap: break-word; }
-        .chat-input-area { display: flex; gap: 5px; }
-        #chatinput { width: 100%; padding: 8px; border-radius: 4px; border: none; background: rgba(255,255,255,0.8); }
+        .chat-input-area { display: flex; gap: 5px; height: 40px; }
+        #chatinput { flex: 1; padding: 0 10px; border-radius: 5px; border: none; background: rgba(255,255,255,0.9); color: #000; }
+        #btn-send { width: 45px; background: #2196F3; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; }
 
         /* --- JOYSTICK --- */
         #joystick-zone {
-            position: absolute; bottom: 50px; right: 50px; width: 120px; height: 120px;
+            position: absolute; bottom: 40px; right: 40px; width: 100px; height: 100px;
             background: rgba(255, 255, 255, 0.1); border-radius: 50%; border: 2px solid rgba(255,255,255,0.3);
-            pointer-events: auto; touch-action: none;
+            pointer-events: auto;
         }
         #joystick-thumb {
-            position: absolute; width: 50px; height: 50px; background: rgba(255,255,255,0.8);
+            position: absolute; width: 40px; height: 40px; background: rgba(255,255,255,0.8);
             border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
 
-        /* --- TAGS --- */
-        .admin-tag { color: #ff4444; font-weight: bold; }
-        .sys-msg { color: #ffff00; font-style: italic; }
+        @media (max-width: 600px) { #chat-container { width: 75%; height: 150px; left: 10px; bottom: 10px; } }
     </style>
 </head>
 <body>
 
     <div id="login-screen">
         <div class="card">
-            <h2 style="margin-top:0;">🏠 Casa Multiplayer</h2>
-            <input id="nick" placeholder="Seu Nickname" type="text" maxlength="12">
+            <h2>🏠 Casa Online</h2>
+            <input id="nick" placeholder="Nickname" type="text" maxlength="12">
             <input id="pass" placeholder="Senha" type="password">
-            <button class="btn-green" onclick="register()">Criar Conta</button>
+            <button class="btn-green" onclick="register()">Registrar</button>
             <button class="btn-blue" onclick="login()">Entrar</button>
         </div>
     </div>
@@ -86,7 +73,8 @@
         <div id="chat-container">
             <div id="messages"></div>
             <div class="chat-input-area">
-                <input id="chatinput" placeholder="Tecle Enter para enviar..." autocomplete="off">
+                <input id="chatinput" placeholder="Conversar..." autocomplete="off">
+                <button id="btn-send" onclick="sendMessage()">➤</button>
             </div>
         </div>
         <div id="joystick-zone">
@@ -98,7 +86,6 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
         import { getDatabase, ref, set, onValue, push, remove, onDisconnect, get, update } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
 
-        // --- CONFIGURAÇÃO FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q",
             authDomain: "chatrucoy.firebaseapp.com",
@@ -113,406 +100,168 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- VARIÁVEIS DO JOGO ---
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        let player = { 
-            x: 500, y: 500, 
-            nick: '', 
-            tag: '[PLAYER]', 
-            color: '#2196F3', 
-            isAdmin: false,
-            lastSent: 0 
-        };
-        
+        let player = { x: 500, y: 500, nick: '', tag: '[PLAYER]', color: '#2196F3', isAdmin: false, lastSent: 0 };
         let otherPlayers = {};
         const houseSize = 2000;
         let camera = { x: 0, y: 0 };
         const speed = 6;
-        const playerRadius = 18;
-        
-        // Joystick
-        let joystick = { active: false, dx: 0, dy: 0, originX: 0, originY: 0 };
-        const joyZone = document.getElementById('joystick-zone');
-        const joyThumb = document.getElementById('joystick-thumb');
+        let joystick = { active: false, dx: 0, dy: 0 };
 
-        // Mapa: Definindo paredes com "buracos" para portas
-        // Portas tem 140px de largura
         const walls = [
-            // Bordas do Mapa
-            { x: 0, y: 0, w: houseSize, h: 20 }, // Topo
-            { x: 0, y: houseSize - 20, w: houseSize, h: 20 }, // Fundo
-            { x: 0, y: 0, w: 20, h: houseSize }, // Esquerda
-            { x: houseSize - 20, y: 0, w: 20, h: houseSize }, // Direita
-            
-            // Cruz Central (Paredes internas)
-            // Vertical (com porta no meio)
-            { x: 990, y: 20, w: 20, h: 800 }, // Parte de cima
-            { x: 990, y: 1180, w: 20, h: 820 }, // Parte de baixo
-            
-            // Horizontal (com porta no meio)
-            { x: 20, y: 990, w: 800, h: 20 }, // Parte esquerda
-            { x: 1180, y: 990, w: 820, h: 20 } // Parte direita
+            { x: 0, y: 0, w: houseSize, h: 20 }, { x: 0, y: houseSize-20, w: houseSize, h: 20 },
+            { x: 0, y: 0, w: 20, h: houseSize }, { x: houseSize-20, y: 0, w: 20, h: houseSize },
+            { x: 990, y: 20, w: 20, h: 800 }, { x: 990, y: 1180, w: 20, h: 820 },
+            { x: 20, y: 990, w: 800, h: 20 }, { x: 1180, y: 990, w: 820, h: 20 }
         ];
 
-        // --- SISTEMA DE LOGIN ---
+        // --- FUNÇÕES DE CONTA ---
         window.register = async () => {
-            const nick = document.getElementById('nick').value.trim().replace(/[.#$/[\]]/g, ""); // Sanitizar nick
+            const nick = document.getElementById('nick').value.trim().replace(/[.#$/[\]]/g, "");
             const pass = document.getElementById('pass').value.trim();
-            if (!nick || !pass) return alert('Preencha os campos!');
-
+            if (!nick || !pass) return alert("Preencha tudo!");
             const snap = await get(ref(db, 'users/' + nick));
-            if (snap.exists()) return alert('Nick já está em uso!');
-
-            await set(ref(db, 'users/' + nick), { pass, tag: '[NOVATO]', color: '#' + Math.floor(Math.random()*16777215).toString(16) });
-            alert('Registrado! Pode entrar.');
+            if (snap.exists()) return alert("Nick em uso!");
+            await set(ref(db, 'users/' + nick), { pass, tag: '[MEMBER]', color: '#'+Math.floor(Math.random()*16777215).toString(16) });
+            alert("Sucesso! Pode logar.");
         };
 
         window.login = async () => {
             const nick = document.getElementById('nick').value.trim().replace(/[.#$/[\]]/g, "");
             const pass = document.getElementById('pass').value.trim();
-            if (!nick || !pass) return alert('Preencha os campos!');
-
-            // Checar Ban
-            const banSnap = await get(ref(db, 'banned/' + nick));
-            if (banSnap.exists()) return alert('Sua conta foi banida.');
-
             const snap = await get(ref(db, 'users/' + nick));
-            if (!snap.exists()) return alert('Usuário não encontrado.');
+            if (!snap.exists() || snap.val().pass !== pass) return alert("Dados incorretos!");
             
-            const data = snap.val();
-            if (data.pass !== pass) return alert('Senha errada.');
-
-            // Sucesso
             player.nick = nick;
-            player.color = data.color || '#2196F3';
-            player.tag = data.tag || '[PLAYER]';
-            player.isAdmin = (nick === 'ADM' && pass === '123'); // Exemplo simples de ADM
+            player.tag = snap.val().tag;
+            player.color = snap.val().color;
+            player.isAdmin = (nick === 'ADM');
 
-            // Recuperar posição salva ou usar padrão
-            const posSnap = await get(ref(db, 'positions/' + nick));
-            if (posSnap.exists()) {
-                player.x = posSnap.val().x;
-                player.y = posSnap.val().y;
-            }
-
-            startGame();
-        };
-
-        function startGame() {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('game-ui').style.display = 'block';
-            
-            // Configurar Listeners do Firebase
-            const playerRef = ref(db, 'online/' + player.nick);
-            onDisconnect(playerRef).remove();
-            
-            // Salvar posição ao sair
-            const savePosRef = ref(db, 'positions/' + player.nick);
-            onDisconnect(savePosRef).set({ x: player.x, y: player.y });
+            startEngine();
+        };
 
-            // Receber outros jogadores
+        // --- CHAT LÓGICA ---
+        window.sendMessage = () => {
+            const input = document.getElementById('chatinput');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            push(ref(db, 'chat'), {
+                nick: player.nick,
+                tag: player.tag,
+                color: player.color,
+                text: text
+            });
+            input.value = '';
+        };
+
+        function startEngine() {
             onValue(ref(db, 'online'), (snap) => {
                 otherPlayers = snap.val() || {};
-                delete otherPlayers[player.nick]; // Não desenhar "fantasma" de si mesmo
+                delete otherPlayers[player.nick];
             });
 
-            // Chat
-            setupChat();
-            
-            // Joystick
-            setupJoystick();
+            onValue(ref(db, 'chat'), (snap) => {
+                const msgsDiv = document.getElementById('messages');
+                msgsDiv.innerHTML = '';
+                const data = snap.val();
+                if (data) {
+                    Object.values(data).slice(-15).forEach(m => {
+                        const div = document.createElement('div');
+                        div.innerHTML = `<small style="color:${m.color}">${m.tag}</small> <b>${m.nick}:</b> ${m.text}`;
+                        msgsDiv.appendChild(div);
+                    });
+                    msgsDiv.scrollTop = msgsDiv.scrollHeight;
+                }
+            });
 
-            // Iniciar Loop
-            resizeCanvas();
+            document.getElementById('chatinput').addEventListener('keydown', (e) => {
+                if(e.key === 'Enter') window.sendMessage();
+            });
+
+            onDisconnect(ref(db, 'online/' + player.nick)).remove();
+            setupJoystick();
             requestAnimationFrame(gameLoop);
         }
 
-        // --- LÓGICA DO JOGO ---
-
-        function checkCollision(nextX, nextY) {
-            // AABB Collision simples
+        // --- SISTEMA DE MOVIMENTO E RENDER ---
+        function checkCollision(nx, ny) {
             for (let w of walls) {
-                if (nextX + playerRadius > w.x && nextX - playerRadius < w.x + w.w &&
-                    nextY + playerRadius > w.y && nextY - playerRadius < w.y + w.h) {
-                    return true;
-                }
+                if (nx + 15 > w.x && nx - 15 < w.x + w.w && ny + 15 > w.y && ny - 15 < w.y + w.h) return true;
             }
             return false;
         }
 
-        function updateNetwork() {
-            // Throttling: Envia dados apenas a cada 50ms para não saturar
-            const now = Date.now();
-            if (now - player.lastSent > 50) {
-                update(ref(db, 'online/' + player.nick), {
-                    x: Math.round(player.x),
-                    y: Math.round(player.y),
-                    tag: player.tag,
-                    color: player.color
-                });
-                player.lastSent = now;
-            }
-        }
-
         function gameLoop() {
-            // 1. Movimento
-            let moveX = 0;
-            let moveY = 0;
-
-            // Joystick
             if (joystick.active) {
-                moveX = joystick.dx;
-                moveY = joystick.dy;
+                let nx = player.x + joystick.dx * speed;
+                let ny = player.y + joystick.dy * speed;
+                if (!checkCollision(nx, player.y)) player.x = nx;
+                if (!checkCollision(player.x, ny)) player.y = ny;
+                
+                const now = Date.now();
+                if (now - player.lastSent > 50) {
+                    update(ref(db, 'online/' + player.nick), { x: player.x, y: player.y, color: player.color, tag: player.tag });
+                    player.lastSent = now;
+                }
             }
 
-            // Teclado (WASD / Setas) - Opcional para PC
-            if (keys['w'] || keys['ArrowUp']) moveY = -1;
-            if (keys['s'] || keys['ArrowDown']) moveY = 1;
-            if (keys['a'] || keys['ArrowLeft']) moveX = -1;
-            if (keys['d'] || keys['ArrowRight']) moveX = 1;
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
 
-            // Normalizar vetor (para não andar mais rápido na diagonal)
-            if (moveX !== 0 || moveY !== 0) {
-                const length = Math.sqrt(moveX * moveX + moveY * moveY);
-                moveX /= length;
-                moveY /= length;
-
-                let nextX = player.x + moveX * speed;
-                let nextY = player.y + moveY * speed;
-
-                // Colisão separada por eixo para deslizar na parede
-                if (!checkCollision(nextX, player.y)) player.x = nextX;
-                if (!checkCollision(player.x, nextY)) player.y = nextY;
-
-                // Limites do mapa
-                player.x = Math.max(playerRadius, Math.min(houseSize - playerRadius, player.x));
-                player.y = Math.max(playerRadius, Math.min(houseSize - playerRadius, player.y));
-
-                updateNetwork();
-            }
-
-            // 2. Câmera (Centralizada e Clamped)
             camera.x = player.x - canvas.width / 2;
             camera.y = player.y - canvas.height / 2;
-            // Clamp (Não mostrar área fora do mapa)
-            camera.x = Math.max(0, Math.min(houseSize - canvas.width, camera.x));
-            camera.y = Math.max(0, Math.min(houseSize - canvas.height, camera.y));
-            // Se a tela for maior que o mapa, centraliza
-            if (canvas.width > houseSize) camera.x = (houseSize - canvas.width) / 2;
-            if (canvas.height > houseSize) camera.y = (houseSize - canvas.height) / 2;
 
-            render();
-            requestAnimationFrame(gameLoop);
-        }
-
-        function render() {
-            // Limpar tela
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
             ctx.translate(-camera.x, -camera.y);
 
-            // --- DESENHAR CHÃO (Grid) ---
-            ctx.fillStyle = '#e8dcca'; // Cor base do chão
-            ctx.fillRect(0, 0, houseSize, houseSize);
-            
-            // Linhas da grade (tijolo/piso)
-            ctx.strokeStyle = '#d4c5b0';
-            ctx.lineWidth = 2;
-            const gridSize = 100;
-            ctx.beginPath();
-            for (let x = 0; x <= houseSize; x += gridSize) {
-                ctx.moveTo(x, 0); ctx.lineTo(x, houseSize);
-            }
-            for (let y = 0; y <= houseSize; y += gridSize) {
-                ctx.moveTo(0, y); ctx.lineTo(houseSize, y);
-            }
-            ctx.stroke();
+            // Chão e Paredes
+            ctx.fillStyle = '#ddd'; ctx.fillRect(0,0,houseSize,houseSize);
+            ctx.fillStyle = '#5d4037';
+            walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
 
-            // --- DESENHAR PAREDES (Sombra + Corpo) ---
-            for (let w of walls) {
-                // Sombra
-                ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                ctx.fillRect(w.x + 10, w.y + 10, w.w, w.h);
-                // Parede
-                ctx.fillStyle = '#5d4037'; // Marrom Escuro
-                ctx.fillRect(w.x, w.y, w.w, w.h);
-                // Topo da Parede (efeito 3D simples)
-                ctx.strokeStyle = '#3e2723';
-                ctx.lineWidth = 4;
-                ctx.strokeRect(w.x, w.y, w.w, w.h);
-            }
-
-            // --- DESENHAR JOGADORES ---
-            function drawPlayer(p, x, y) {
-                // Sombra
-                ctx.beginPath();
-                ctx.ellipse(x, y + 15, playerRadius, playerRadius * 0.6, 0, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(0,0,0,0.2)';
-                ctx.fill();
-
-                // Corpo
-                ctx.beginPath();
-                ctx.arc(x, y, playerRadius, 0, Math.PI * 2);
+            // Desenhar Jogadores
+            const drawP = (p, name, isMe) => {
                 ctx.fillStyle = p.color;
-                ctx.fill();
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                // Nome e Tag
-                ctx.fillStyle = '#333';
-                ctx.font = 'bold 12px Arial';
-                ctx.textAlign = 'center';
-                
-                // Tag Background
-                const tagW = ctx.measureText(p.tag).width;
-                ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                ctx.fillRect(x - tagW/2 - 2, y - 45, tagW + 4, 16);
-                
-                // Texto
-                ctx.fillStyle = '#000';
-                ctx.fillText(p.tag, x, y - 33);
-                ctx.fillStyle = '#000'; // Nome
-                ctx.font = 'bold 14px Arial';
-                ctx.fillText(p.nick, x, y - 50);
-            }
-
-            // Outros
-            for (let id in otherPlayers) {
-                const op = otherPlayers[id];
-                drawPlayer(op, op.x, op.y);
-            }
-
-            // Eu
-            drawPlayer(player, player.x, player.y);
-
-            ctx.restore();
-        }
-
-        // --- SISTEMA DE CHAT ---
-        function setupChat() {
-            const chatInput = document.getElementById('chatinput');
-            const msgsDiv = document.getElementById('messages');
-
-            onValue(ref(db, 'chat'), (snap) => {
-                msgsDiv.innerHTML = '';
-                if (!snap.exists()) return;
-                
-                let count = 0;
-                // Pegar apenas as últimas 20 mensagens
-                const rawMsgs = [];
-                snap.forEach(c => rawMsgs.push(c.val()));
-                
-                rawMsgs.slice(-20).forEach(msg => {
-                    const div = document.createElement('div');
-                    const isSys = msg.nick === 'Sistema';
-                    div.innerHTML = `<span style="color:${msg.color}; font-weight:bold; font-size:12px;">${msg.tag}</span> <b style="color:${isSys?'#ff0':'#fff'}">${msg.nick}:</b> <span style="color:#eee">${msg.text}</span>`;
-                    msgsDiv.appendChild(div);
-                });
-                msgsDiv.scrollTop = msgsDiv.scrollHeight;
-            });
-
-            chatInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    const text = chatInput.value.trim();
-                    if (!text) return;
-                    chatInput.value = '';
-
-                    // Comandos
-                    if (text.startsWith('/') && player.isAdmin) {
-                        handleCommand(text);
-                        return;
-                    }
-
-                    push(ref(db, 'chat'), { 
-                        nick: player.nick, 
-                        tag: player.tag, 
-                        color: player.color, 
-                        text 
-                    });
-                }
-            });
-        }
-
-        function handleCommand(cmd) {
-            const parts = cmd.split(' ');
-            if (parts[0] === '/limpar') remove(ref(db, 'chat'));
-            // Adicione outros comandos aqui...
-        }
-
-        // --- JOYSTICK LOGIC ---
-        function setupJoystick() {
-            const joyRect = joyZone.getBoundingClientRect();
-            const radius = joyRect.width / 2;
-
-            joyZone.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                joystick.active = true;
-                const touch = e.changedTouches[0];
-                updateJoy(touch.clientX, touch.clientY, joyRect, radius);
-            });
-
-            joyZone.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                if (joystick.active) {
-                    const touch = e.changedTouches[0];
-                    updateJoy(touch.clientX, touch.clientY, joyRect, radius);
-                }
-            });
-
-            const endJoy = (e) => {
-                e.preventDefault();
-                joystick.active = false;
-                joystick.dx = 0;
-                joystick.dy = 0;
-                joyThumb.style.transform = `translate(-50%, -50%)`; // Reset visual
-                joyThumb.style.left = '50%';
-                joyThumb.style.top = '50%';
+                ctx.beginPath(); ctx.arc(p.x, p.y, 18, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = "#fff"; ctx.textAlign = "center";
+                ctx.fillText(name, p.x, p.y - 25);
             };
 
-            joyZone.addEventListener('touchend', endJoy);
-            joyZone.addEventListener('touchcancel', endJoy);
+            Object.keys(otherPlayers).forEach(id => drawP(otherPlayers[id], id, false));
+            drawP(player, player.nick, true);
+
+            ctx.restore();
+            requestAnimationFrame(gameLoop);
         }
 
-        function updateJoy(cx, cy, rect, radius) {
-            // Centro do joystick
-            const centerX = rect.left + radius;
-            const centerY = rect.top + radius;
-
-            let dx = cx - centerX;
-            let dy = cy - centerY;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-
-            // Limitar movimento da bolinha
-            if (dist > radius) {
-                const ratio = radius / dist;
-                dx *= ratio;
-                dy *= ratio;
-            }
-
-            // Normalizar outputs (-1 a 1)
-            joystick.dx = dx / radius;
-            joystick.dy = dy / radius;
-
-            // Mover visualmente
-            joyThumb.style.left = `${50 + (dx/radius)*50}%`;
-            joyThumb.style.top = `${50 + (dy/radius)*50}%`;
+        function setupJoystick() {
+            const zone = document.getElementById('joystick-zone');
+            const thumb = document.getElementById('joystick-thumb');
+            const handle = (e) => {
+                const t = e.touches[0];
+                const rect = zone.getBoundingClientRect();
+                const center = { x: rect.left + 50, y: rect.top + 50 };
+                let dx = t.clientX - center.x;
+                let dy = t.clientY - center.y;
+                const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 50);
+                const angle = Math.atan2(dy, dx);
+                joystick.dx = (Math.cos(angle) * dist) / 50;
+                joystick.dy = (Math.sin(angle) * dist) / 50;
+                thumb.style.left = `calc(50% + ${Math.cos(angle)*dist}px)`;
+                thumb.style.top = `calc(50% + ${Math.sin(angle)*dist}px)`;
+            };
+            zone.addEventListener('touchstart', (e) => { joystick.active = true; handle(e); });
+            zone.addEventListener('touchmove', handle);
+            zone.addEventListener('touchend', () => { 
+                joystick.active = false; 
+                thumb.style.left = '50%'; thumb.style.top = '50%';
+            });
         }
-
-        // --- UTILS ---
-        const keys = {};
-        window.addEventListener('keydown', e => keys[e.key] = true);
-        window.addEventListener('keyup', e => keys[e.key] = false);
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
     </script>
 </body>
-    </html>
+</html>
