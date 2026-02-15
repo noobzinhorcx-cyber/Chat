@@ -1,138 +1,418 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SMW Coop Online - Emmanuel 2025</title>
+    <title>Penguin Kitchen Party</title>
     <style>
-        body { margin: 0; background: #000; color: white; font-family: sans-serif; overflow: hidden; }
-        #game-container { width: 100vw; height: 50vh; background: #222; }
+        body { margin: 0; overflow: hidden; background: #222; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; touch-action: none; }
+        #game-container { position: relative; width: 100vw; height: 100vh; display: none; }
+        canvas { background: #87CEEB; display: block; width: 100%; height: 100%; } /* Fundo Gelo/Azul Pinguim */
         
-        .setup-screen { 
-            position: absolute; inset: 0; background: #1a1a1a; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
-        }
+        /* UI do Menu */
+        #menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; }
+        input { padding: 10px; font-size: 18px; margin: 10px; border-radius: 5px; border: none; text-align: center; }
+        button { padding: 15px 30px; font-size: 20px; margin: 10px; border-radius: 25px; border: none; background: #ff9800; color: white; cursor: pointer; font-weight: bold; }
+        button:active { transform: scale(0.95); }
+        .hidden { display: none !important; }
 
-        /* Controles Estilo SNES para Celular */
-        .controller { 
-            display: grid; grid-template-columns: repeat(6, 1fr); 
-            grid-template-rows: repeat(2, 80px); gap: 10px; padding: 10px;
-            background: #333; height: 40vh;
-        }
-        .btn { 
-            background: #555; border-radius: 10px; display: flex; 
-            align-items: center; justify-content: center; font-weight: bold;
-            user-select: none; -webkit-tap-highlight-color: transparent;
-        }
-        .btn:active { background: #888; transform: scale(0.9); }
-        .dpad { background: #222; }
-        .action { background: #a00; border-radius: 50%; } /* Botões A, B, X, Y */
+        /* Controles Mobile */
+        #controls { position: absolute; bottom: 20px; width: 100%; height: 150px; pointer-events: none; display: flex; justify-content: space-between; padding: 0 40px; box-sizing: border-box; }
+        .control-zone { pointer-events: auto; width: 120px; height: 120px; background: rgba(255, 255, 255, 0.2); border-radius: 50%; position: relative; backdrop-filter: blur(2px); border: 2px solid rgba(255,255,255,0.3); }
+        #joystick-nub { width: 50px; height: 50px; background: #fff; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        #action-btn { background: #ff4757; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; text-transform: uppercase; user-select: none; }
+        
+        /* HUD */
+        #hud { position: absolute; top: 10px; left: 10px; pointer-events: none; text-shadow: 1px 1px 2px black; font-size: 18px; }
+        #room-code-display { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; font-family: monospace; }
     </style>
 </head>
 <body>
 
-    <div id="setup" class="setup-screen">
-        <h2>🎮 SMW COOP ONLINE</h2>
-        <input type="file" id="rom-upload" accept=".smw,.sfc" style="margin-bottom: 20px;">
-        <input type="text" id="room-id" placeholder="Nome da Sala" style="padding:10px; margin-bottom: 10px;">
-        <select id="player-role" style="padding:10px; margin-bottom: 10px;">
-            <option value="p1">Jogador 1 (Mario)</option>
-            <option value="p2">Jogador 2 (Luigi)</option>
-        </select>
-        <button onclick="initGame()" style="padding:15px 30px; background: #28a745; color: white; border: none; border-radius: 10px;">INICIAR COOP</button>
+    <div id="menu">
+        <h1>🐧 Penguin Kitchen 🐧</h1>
+        <p>Atenda os clientes e sirva os 10 pratos!</p>
+        <input type="text" id="username" placeholder="Seu Nome" maxlength="8">
+        <input type="text" id="room-code" placeholder="Código da Sala (para entrar)" maxlength="6">
+        <div style="display: flex;">
+            <button id="create-btn">Criar Sala</button>
+            <button id="join-btn">Entrar</button>
+        </div>
+        <p id="status-msg" style="color: yellow; height: 20px;"></p>
     </div>
 
     <div id="game-container">
-        <div id="game"></div>
-    </div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="hud">
+            Score: <span id="score">0</span> | Fila: <span id="queue-count">0</span>
+        </div>
+        <div id="room-code-display">Sala: ----</div>
 
-    <div class="controller">
-        <div class="btn dpad" data-key="left">◀</div>
-        <div class="btn dpad" data-key="up">▲</div>
-        <div class="btn dpad" data-key="right">▶</div>
-        <div class="btn action" data-key="x">X</div>
-        <div class="btn action" data-key="y">Y</div>
-        <div class="btn" data-key="start">ST</div>
-        
-        <div class="btn dpad" data-key="down">▼</div>
-        <div class="btn" style="visibility: hidden;"></div>
-        <div class="btn" data-key="select">SEL</div>
-        <div class="btn action" data-key="b">B</div>
-        <div class="btn action" data-key="a">A</div>
-        <div class="btn" data-key="l">L/R</div>
+        <div id="controls">
+            <div id="joystick-zone" class="control-zone">
+                <div id="joystick-nub"></div>
+            </div>
+            <div id="action-btn" class="control-zone">PEGAR / SERVIR</div>
+        </div>
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { getDatabase, ref, update, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { getDatabase, ref, set, onValue, update, push, remove, onDisconnect, get } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
 
+        // --- CONFIGURAÇÃO FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q",
+            authDomain: "chatrucoy.firebaseapp.com",
             databaseURL: "https://chatrucoy-default-rtdb.firebaseio.com",
-            projectId: "chatrucoy",
+            projectId: "chatrucoy"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        let myRole, otherRole, roomPath;
+        // --- VARIÁVEIS DO JOGO ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let myId = 'player_' + Math.random().toString(36).substr(2, 9);
+        let roomId = null;
+        let players = {};
+        let customers = {}; // Clientes ativos
+        let score = 0;
+        let myName = "Pinguim";
 
-        window.initGame = () => {
-            const file = document.getElementById('rom-upload').files[0];
-            const room = document.getElementById('room-id').value;
-            myRole = document.getElementById('player-role').value;
-            
-            if(!file || !room) return alert("Selecione a ROM e o nome da sala!");
-            
-            otherRole = myRole === 'p1' ? 'p2' : 'p1';
-            roomPath = 'smw_coop/' + room;
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                startEmulator(e.target.result);
-                document.getElementById('setup').style.display = 'none';
-                setupNetwork();
-            };
-            reader.readAsDataURL(file);
-        };
+        // Joystick
+        let joystick = { active: false, dx: 0, dy: 0, originX: 0, originY: 0 };
+        const joyZone = document.getElementById('joystick-zone');
+        const joyNub = document.getElementById('joystick-nub');
+        const actionBtn = document.getElementById('action-btn');
 
-        function startEmulator(romBase64) {
-            window.EJS_player = '#game';
-            window.EJS_core = 'snes';
-            window.EJS_gameUrl = romBase64;
-            window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
-            window.EJS_startOnLoaded = true;
+        // Mapa e Pratos (10 Tipos)
+        const DISHES = [
+            { id: 1, name: "Peixe", color: "#FF6347" }, // Tomato
+            { id: 2, name: "Pizza", color: "#FFA500" }, // Orange
+            { id: 3, name: "Sushi", color: "#FFD700" }, // Gold
+            { id: 4, name: "Salada", color: "#32CD32" }, // Lime
+            { id: 5, name: "Sopa", color: "#8A2BE2" }, // Violet
+            { id: 6, name: "Taco", color: "#A52A2A" }, // Brown
+            { id: 7, name: "Bife", color: "#800000" }, // Maroon
+            { id: 8, name: "Refri", color: "#00CED1" }, // DarkTurquoise
+            { id: 9, name: "Bolo", color: "#FF69B4" }, // HotPink
+            { id: 10, name: "Café", color: "#FFFFFF" }  // White
+        ];
 
-            const script = document.createElement('script');
-            script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
-            document.head.appendChild(script);
+        // Estações de comida (posições fixas no mapa)
+        let stations = [];
+
+        // Tamanhos
+        const PLAYER_SIZE = 20;
+        const STATION_SIZE = 40;
+        
+        // --- FUNÇÕES DE MENU ---
+        document.getElementById('create-btn').addEventListener('click', createRoom);
+        document.getElementById('join-btn').addEventListener('click', joinRoom);
+
+        function setupCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            // Gerar estações em volta da sala (Layout de Cozinha)
+            stations = [];
+            const cols = 5;
+            const rows = 2;
+            let spacingX = canvas.width / (cols + 1);
+            let startY = 80;
+            
+            for(let i=0; i<10; i++) {
+                let r = Math.floor(i / cols);
+                let c = i % cols;
+                stations.push({
+                    x: spacingX * (c + 1),
+                    y: startY + (r * (canvas.height - 200)), // Uma linha em cima, uma embaixo
+                    dish: DISHES[i]
+                });
+            }
         }
 
-        function setupNetwork() {
-            const myInputRef = ref(db, roomPath + '/' + myRole);
-            const otherInputRef = ref(db, roomPath + '/' + otherRole);
-
-            // Enviar meus comandos
-            document.querySelectorAll('.btn').forEach(btn => {
-                const key = btn.dataset.key;
-                const send = (val) => update(myInputRef, { [key]: val });
-
-                btn.ontouchstart = (e) => { e.preventDefault(); send(1); };
-                btn.ontouchend = (e) => { e.preventDefault(); send(0); };
+        async function createRoom() {
+            myName = document.getElementById('username').value || "Chef";
+            roomId = Math.random().toString(36).substr(2, 6).toUpperCase();
+            
+            await set(ref(db, `rooms/${roomId}`), {
+                status: "active",
+                score: 0,
+                createdAt: Date.now()
             });
 
-            // Receber comandos do parceiro e injetar no emulador
-            onValue(otherInputRef, (snapshot) => {
-                const inputs = snapshot.val();
-                if(!inputs || !window.EJS_emulator) return;
+            enterGame();
+        }
 
-                // Mapeia os inputs do Firebase para o núcleo do emulador
-                // Nota: O EmulatorJS usa IDs específicos para cada botão
-                for(let key in inputs) {
-                    // window.EJS_emulator.setControllerInput(playerIndex, buttonId, value);
+        async function joinRoom() {
+            myName = document.getElementById('username').value || "Chef";
+            const code = document.getElementById('room-code').value.toUpperCase();
+            
+            const snapshot = await get(ref(db, `rooms/${code}`));
+            if (snapshot.exists()) {
+                roomId = code;
+                enterGame();
+            } else {
+                document.getElementById('status-msg').innerText = "Sala não encontrada!";
+            }
+        }
+
+        function enterGame() {
+            document.getElementById('menu').classList.add('hidden');
+            document.getElementById('game-container').style.display = 'block';
+            document.getElementById('room-code-display').innerText = `Sala: ${roomId}`;
+            setupCanvas();
+
+            // Referência do jogador
+            const playerRef = ref(db, `rooms/${roomId}/players/${myId}`);
+            
+            // Dados iniciais
+            set(playerRef, {
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                color: '#' + Math.floor(Math.random()*16777215).toString(16),
+                name: myName,
+                holding: null // null ou ID do prato
+            });
+
+            // Remover ao sair
+            onDisconnect(playerRef).remove();
+
+            // Listeners do Firebase
+            const playersRef = ref(db, `rooms/${roomId}/players`);
+            onValue(playersRef, (snap) => {
+                players = snap.val() || {};
+                // Verificação de limite de players (Simples)
+                if(Object.keys(players).length > 5 && !players[myId]) {
+                    alert("Sala cheia!");
+                    location.reload();
                 }
             });
+
+            const customersRef = ref(db, `rooms/${roomId}/customers`);
+            onValue(customersRef, (snap) => {
+                customers = snap.val() || {};
+            });
+            
+            const scoreRef = ref(db, `rooms/${roomId}/score`);
+            onValue(scoreRef, (snap) => {
+                score = snap.val() || 0;
+                document.getElementById('score').innerText = score;
+            });
+
+            // Se for o criador (ou aleatoriamente), gerar clientes
+            // Lógica simplificada: todo mundo tenta gerar, mas só gera se tiver pouco
+            setInterval(spawnCustomerLogic, 3000);
+
+            requestAnimationFrame(gameLoop);
         }
+
+        function spawnCustomerLogic() {
+            if (!roomId) return;
+            const currentCount = Object.keys(customers).length;
+            if (currentCount < 3) {
+                // Cliente pede um prato aleatório (1 a 10)
+                const dishId = Math.floor(Math.random() * 10) + 1;
+                const newCustRef = push(ref(db, `rooms/${roomId}/customers`));
+                // Posição aleatória na esquerda ou direita
+                const side = Math.random() > 0.5 ? 50 : canvas.width - 50;
+                set(newCustRef, {
+                    x: side,
+                    y: Math.random() * (canvas.height - 200) + 100,
+                    wanted: dishId,
+                    timer: 1000 // Tempo antes de ir embora (não implementado full por brevidade)
+                });
+            }
+        }
+
+        // --- CONTROLES (JOYSTICK) ---
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.targetTouches[0];
+            joystick.active = true;
+            joystick.originX = touch.clientX;
+            joystick.originY = touch.clientY;
+            joystick.dx = 0;
+            joystick.dy = 0;
+        }
+
+        function handleTouchMove(e) {
+            if (!joystick.active) return;
+            e.preventDefault();
+            const touch = e.targetTouches[0];
+            
+            let deltaX = touch.clientX - joystick.originX;
+            let deltaY = touch.clientY - joystick.originY;
+            
+            const distance = Math.sqrt(deltaX*deltaX + deltaY*deltaY);
+            const maxDist = 35;
+            
+            if (distance > maxDist) {
+                const angle = Math.atan2(deltaY, deltaX);
+                deltaX = Math.cos(angle) * maxDist;
+                deltaY = Math.sin(angle) * maxDist;
+            }
+
+            joystick.dx = deltaX / maxDist; // Normalizado -1 a 1
+            joystick.dy = deltaY / maxDist;
+
+            joyNub.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
+        }
+
+        function handleTouchEnd(e) {
+            joystick.active = false;
+            joystick.dx = 0;
+            joystick.dy = 0;
+            joyNub.style.transform = `translate(-50%, -50%)`;
+        }
+
+        joyZone.addEventListener('touchstart', handleTouchStart);
+        joyZone.addEventListener('touchmove', handleTouchMove);
+        joyZone.addEventListener('touchend', handleTouchEnd);
+        
+        // Botão de Ação
+        actionBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleAction();
+        });
+        
+        // Teclado para PC (Debug)
+        window.addEventListener('keydown', (e) => {
+            if(e.key === ' ') handleAction();
+        });
+
+        function handleAction() {
+            if (!players[myId]) return;
+            const me = players[myId];
+
+            // 1. Verificar se está perto de uma estação para PEGAR comida
+            for (let s of stations) {
+                let d = Math.hypot(me.x - s.x, me.y - s.y);
+                if (d < STATION_SIZE + PLAYER_SIZE) {
+                    update(ref(db, `rooms/${roomId}/players/${myId}`), {
+                        holding: s.dish.id
+                    });
+                    return; // Ação feita
+                }
+            }
+
+            // 2. Verificar se está perto de um cliente para ENTREGAR
+            if (me.holding) {
+                Object.keys(customers).forEach(key => {
+                    const cust = customers[key];
+                    let d = Math.hypot(me.x - cust.x, me.y - cust.y);
+                    if (d < 40) {
+                        if (cust.wanted === me.holding) {
+                            // Sucesso!
+                            remove(ref(db, `rooms/${roomId}/customers/${key}`));
+                            update(ref(db, `rooms/${roomId}/players/${myId}`), { holding: null });
+                            // Aumentar Score Global
+                            update(ref(db, `rooms/${roomId}`), { score: score + 10 });
+                        }
+                    }
+                });
+            }
+        }
+
+        // --- GAME LOOP ---
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 1. Atualizar minha posição
+            if (players[myId] && (joystick.dx !== 0 || joystick.dy !== 0)) {
+                let newX = players[myId].x + joystick.dx * 4;
+                let newY = players[myId].y + joystick.dy * 4;
+                
+                // Limites da tela
+                newX = Math.max(20, Math.min(canvas.width - 20, newX));
+                newY = Math.max(20, Math.min(canvas.height - 20, newY));
+
+                update(ref(db, `rooms/${roomId}/players/${myId}`), {
+                    x: newX,
+                    y: newY
+                });
+            }
+
+            // 2. Desenhar Estações (Comida)
+            stations.forEach(s => {
+                ctx.fillStyle = "#333"; // Mesa
+                ctx.fillRect(s.x - 20, s.y - 20, 40, 40);
+                
+                // O prato
+                ctx.fillStyle = s.dish.color;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, 10, 0, Math.PI*2);
+                ctx.fill();
+                
+                ctx.fillStyle = "white";
+                ctx.font = "10px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(s.dish.name, s.x, s.y + 25);
+            });
+
+            // 3. Desenhar Clientes
+            Object.values(customers).forEach(c => {
+                ctx.fillStyle = "#555"; // Cor do cliente
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, 15, 0, Math.PI*2);
+                ctx.fill();
+                
+                // Balão de pedido
+                ctx.fillStyle = "white";
+                ctx.fillRect(c.x + 10, c.y - 30, 30, 20);
+                const dish = DISHES.find(d => d.id === c.wanted);
+                if (dish) {
+                    ctx.fillStyle = dish.color;
+                    ctx.beginPath();
+                    ctx.arc(c.x + 25, c.y - 20, 6, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            });
+
+            // 4. Desenhar Players
+            Object.keys(players).forEach(key => {
+                const p = players[key];
+                
+                // Corpo do Pinguim
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, PLAYER_SIZE, 0, Math.PI*2);
+                ctx.fill();
+                
+                // Barriga Branca (Estilo pinguim)
+                ctx.fillStyle = "white";
+                ctx.beginPath();
+                ctx.arc(p.x, p.y + 2, PLAYER_SIZE * 0.6, 0, Math.PI*2);
+                ctx.fill();
+
+                // Nome
+                ctx.fillStyle = "white";
+                ctx.font = "12px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(p.name, p.x, p.y - 25);
+
+                // O que está segurando?
+                if (p.holding) {
+                    const dish = DISHES.find(d => d.id === p.holding);
+                    if (dish) {
+                        ctx.fillStyle = dish.color; // Prato na cabeça
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y - 10, 8, 0, Math.PI*2);
+                        ctx.stroke();
+                        ctx.fill();
+                    }
+                }
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Ajuste de tela
+        window.addEventListener('resize', setupCanvas);
     </script>
 </body>
-</html>
+    </html>
