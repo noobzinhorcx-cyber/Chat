@@ -3,82 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SMW Online Coop - Admin Emmanuel</title>
-    <script src="https://cdn.jsdelivr.net/npm/emulatorjs@latest/dist/emulator.min.js"></script>
+    <title>SMW Coop Online - Emmanuel 2025</title>
     <style>
-        body { margin: 0; background: #000; color: white; display: flex; flex-direction: column; align-items: center; }
-        #game-container { width: 100vw; height: 70vh; background: #222; }
-        .controls-mobile { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 20px; }
-        .btn { width: 60px; height: 60px; background: #444; border-radius: 10px; display: flex; align-items: center; justify-content: center; user-select: none; }
-        .active { background: #ff4444 !important; }
+        body { margin: 0; background: #000; color: white; font-family: sans-serif; overflow: hidden; }
+        #game-container { width: 100vw; height: 50vh; background: #222; }
+        
+        .setup-screen { 
+            position: absolute; inset: 0; background: #1a1a1a; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
+        }
+
+        /* Controles Estilo SNES para Celular */
+        .controller { 
+            display: grid; grid-template-columns: repeat(6, 1fr); 
+            grid-template-rows: repeat(2, 80px); gap: 10px; padding: 10px;
+            background: #333; height: 40vh;
+        }
+        .btn { 
+            background: #555; border-radius: 10px; display: flex; 
+            align-items: center; justify-content: center; font-weight: bold;
+            user-select: none; -webkit-tap-highlight-color: transparent;
+        }
+        .btn:active { background: #888; transform: scale(0.9); }
+        .dpad { background: #222; }
+        .action { background: #a00; border-radius: 50%; } /* Botões A, B, X, Y */
     </style>
 </head>
 <body>
+
+    <div id="setup" class="setup-screen">
+        <h2>🎮 SMW COOP ONLINE</h2>
+        <input type="file" id="rom-upload" accept=".smw,.sfc" style="margin-bottom: 20px;">
+        <input type="text" id="room-id" placeholder="Nome da Sala" style="padding:10px; margin-bottom: 10px;">
+        <select id="player-role" style="padding:10px; margin-bottom: 10px;">
+            <option value="p1">Jogador 1 (Mario)</option>
+            <option value="p2">Jogador 2 (Luigi)</option>
+        </select>
+        <button onclick="initGame()" style="padding:15px 30px; background: #28a745; color: white; border: none; border-radius: 10px;">INICIAR COOP</button>
+    </div>
 
     <div id="game-container">
         <div id="game"></div>
     </div>
 
-    <div id="status">Conectando ao Firebase...</div>
-
-    <div class="controls-mobile">
-        <div class="btn" id="left">◀</div>
-        <div class="btn" id="up">▲</div>
-        <div class="btn" id="right">▶</div>
-        <div class="btn" id="y">Y (Correr)</div>
-        <div class="btn" id="down">▼</div>
-        <div class="btn" id="b">B (Pular)</div>
+    <div class="controller">
+        <div class="btn dpad" data-key="left">◀</div>
+        <div class="btn dpad" data-key="up">▲</div>
+        <div class="btn dpad" data-key="right">▶</div>
+        <div class="btn action" data-key="x">X</div>
+        <div class="btn action" data-key="y">Y</div>
+        <div class="btn" data-key="start">ST</div>
+        
+        <div class="btn dpad" data-key="down">▼</div>
+        <div class="btn" style="visibility: hidden;"></div>
+        <div class="btn" data-key="select">SEL</div>
+        <div class="btn action" data-key="b">B</div>
+        <div class="btn action" data-key="a">A</div>
+        <div class="btn" data-key="l">L/R</div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
         import { getDatabase, ref, update, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-        // CONFIGURAÇÃO FIREBASE (Emmanuel 2025)
         const firebaseConfig = {
             apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q",
             databaseURL: "https://chatrucoy-default-rtdb.firebaseio.com",
             projectId: "chatrucoy",
         };
+
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Identificação do Jogador (P1 ou P2)
-        const role = prompt("Você é o Player 1 ou 2?") === "1" ? "p1" : "p2";
-        const otherPlayer = role === "p1" ? "p2" : "p1";
+        let myRole, otherRole, roomPath;
 
-        // Inicializar Emulador (EmulatorJS)
-        const Emu = new EmulatorJS("game", {
-            system: "snes",
-            rom: "URL_DA_SUA_ROM_AQUI.smw", // Você precisa hospedar a ROM
-            onReady: () => { console.log("Emulador Pronto!"); }
-        });
+        window.initGame = () => {
+            const file = document.getElementById('rom-upload').files[0];
+            const room = document.getElementById('room-id').value;
+            myRole = document.getElementById('player-role').value;
+            
+            if(!file || !room) return alert("Selecione a ROM e o nome da sala!");
+            
+            otherRole = myRole === 'p1' ? 'p2' : 'p1';
+            roomPath = 'smw_coop/' + room;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                startEmulator(e.target.result);
+                document.getElementById('setup').style.display = 'none';
+                setupNetwork();
+            };
+            reader.readAsDataURL(file);
+        };
 
-        // --- SINCRONIZAÇÃO DE CONTROLES ---
-        const controlsRef = ref(db, 'smw_netplay/' + role);
-        const otherRef = ref(db, 'smw_netplay/' + otherPlayer);
+        function startEmulator(romBase64) {
+            window.EJS_player = '#game';
+            window.EJS_core = 'snes';
+            window.EJS_gameUrl = romBase64;
+            window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
+            window.EJS_startOnLoaded = true;
 
-        function sendInput(button, state) {
-            update(controlsRef, { [button]: state });
+            const script = document.createElement('script');
+            script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+            document.head.appendChild(script);
         }
 
-        // Ler controles do outro jogador e injetar no emulador
-        onValue(otherRef, (snap) => {
-            const inputs = snap.val();
-            if(inputs) {
-                // Aqui o emulador "aperta" o botão para o P2
-                // Exemplo: Emu.pressButton(otherPlayer, inputs);
-            }
-        });
+        function setupNetwork() {
+            const myInputRef = ref(db, roomPath + '/' + myRole);
+            const otherInputRef = ref(db, roomPath + '/' + otherRole);
 
-        // Eventos de toque para o celular
-        const buttons = ['left', 'right', 'up', 'down', 'b', 'y'];
-        buttons.forEach(id => {
-            const el = document.getElementById(id);
-            el.ontouchstart = () => { sendInput(id, true); el.classList.add('active'); };
-            el.ontouchend = () => { sendInput(id, false); el.classList.remove('active'); };
-        });
+            // Enviar meus comandos
+            document.querySelectorAll('.btn').forEach(btn => {
+                const key = btn.dataset.key;
+                const send = (val) => update(myInputRef, { [key]: val });
 
+                btn.ontouchstart = (e) => { e.preventDefault(); send(1); };
+                btn.ontouchend = (e) => { e.preventDefault(); send(0); };
+            });
+
+            // Receber comandos do parceiro e injetar no emulador
+            onValue(otherInputRef, (snapshot) => {
+                const inputs = snapshot.val();
+                if(!inputs || !window.EJS_emulator) return;
+
+                // Mapeia os inputs do Firebase para o núcleo do emulador
+                // Nota: O EmulatorJS usa IDs específicos para cada botão
+                for(let key in inputs) {
+                    // window.EJS_emulator.setControllerInput(playerIndex, buttonId, value);
+                }
+            });
+        }
     </script>
 </body>
 </html>
