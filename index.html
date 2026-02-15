@@ -1,99 +1,47 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plugin Engine Mobile</title>
-    <style>
-        body { margin: 0; background: #111; color: white; font-family: sans-serif; overflow: hidden; }
-        canvas { display: block; background: #222; }
+// --- SISTEMA DE UPLOAD COM PERSISTÊNCIA ---
+const fileInput = document.getElementById('fileInput');
+
+// 1. Função que executa o código do plugin
+function executePlugin(code) {
+    try {
+        const script = document.createElement('script');
+        script.text = code;
+        document.body.appendChild(script);
+    } catch (err) {
+        console.error("Erro ao executar plugin salvo:", err);
+    }
+}
+
+// 2. Carregar plugins salvos assim que a página abrir
+window.addEventListener('load', () => {
+    const savedPlugins = JSON.parse(localStorage.getItem('myGamePlugins') || '[]');
+    savedPlugins.forEach(pluginCode => {
+        executePlugin(pluginCode);
+    });
+    console.log(`${savedPlugins.length} plugins restaurados da memória.`);
+});
+
+// 3. Salvar novo plugin ao fazer upload
+fileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const pluginCode = event.target.result;
         
-        /* Interface de Upload */
-        #ui-layer { position: absolute; top: 10px; left: 10px; z-index: 10; pointer-events: none; }
-        .btn { 
-            pointer-events: auto; background: #4CAF50; color: white; padding: 10px; 
-            border: none; border-radius: 5px; cursor: pointer; font-size: 14px;
-        }
-        #plugin-info { margin-top: 10px; font-size: 12px; color: #aaa; }
-    </style>
-</head>
-<body>
+        // Executa agora
+        executePlugin(pluginCode);
 
-    <div id="ui-layer">
-        <button class="btn" onclick="document.getElementById('fileInput').click()">🔌 Upload Plugin (.js)</button>
-        <input type="file" id="fileInput" style="display:none" accept=".js">
-        <div id="plugin-info">Nenhum plugin ativo</div>
-    </div>
+        // Salva para sempre no LocalStorage
+        const savedPlugins = JSON.parse(localStorage.getItem('myGamePlugins') || '[]');
+        savedPlugins.push(pluginCode);
+        localStorage.setItem('myGamePlugins', JSON.stringify(savedPlugins));
+        
+        alert("Plugin integrado e salvo com sucesso!");
+    };
+    reader.readAsText(file);
+});
 
-    <canvas id="gameCanvas"></canvas>
-
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        // --- ENGINE CORE (O que o plugin pode acessar) ---
-        const Game = {
-            player: { x: 100, y: 100, size: 30, color: 'cyan', speed: 5 },
-            entities: [],
-            plugins: [],
-            
-            // Função para o plugin registrar comportamentos
-            register: function(pluginData) {
-                this.plugins.push(pluginData);
-                document.getElementById('plugin-info').innerText = "Plugin Ativo: " + (pluginData.name || "Sem nome");
-                if(pluginData.onInit) pluginData.onInit(this);
-            }
-        };
-
-        // --- SISTEMA DE UPLOAD (Mobile Friendly) ---
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                try {
-                    // Aqui acontece a mágica: transformamos o texto do arquivo em código executável
-                    const pluginCode = event.target.result;
-                    const script = document.createElement('script');
-                    script.text = pluginCode;
-                    document.body.appendChild(script);
-                    console.log("Plugin carregado com sucesso!");
-                } catch (err) {
-                    alert("Erro no Plugin: " + err);
-                }
-            };
-            reader.readAsText(file);
-        });
-
-        // --- LOOP PRINCIPAL ---
-        function update() {
-            // Movimento básico (pode ser sobrescrito por plugins)
-            // Aqui os plugins podem rodar a cada frame
-            Game.plugins.forEach(p => {
-                if(p.onUpdate) p.onUpdate(Game);
-            });
-
-            draw();
-            requestAnimationFrame(update);
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Desenha Player
-            ctx.fillStyle = Game.player.color;
-            ctx.fillRect(Game.player.x, Game.player.y, Game.player.size, Game.player.size);
-
-            // Plugins podem desenhar coisas extras
-            Game.plugins.forEach(p => {
-                if(p.onDraw) p.onDraw(ctx, Game);
-            });
-        }
-
-        update();
-    </script>
-</body>
-</html>
+// FUNÇÃO EXTRA: Se quiser deletar tudo e começar do zero, digite no console: 
+// localStorage.clear(); location.reload();
