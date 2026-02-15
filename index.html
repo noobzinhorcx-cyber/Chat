@@ -3,16 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Multiplayer Vercel</title>
+    <title>Neon Minecraft Multiplayer</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Arial', sans-serif; touch-action: none; }
         #game-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
         #status-board { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 16px; text-align: center; text-shadow: 0 0 5px #000; }
         #joystick-zone { position: absolute; bottom: 50px; left: 50px; width: 150px; height: 150px; pointer-events: auto; }
+        #look-zone { position: absolute; bottom: 50px; right: 50px; width: 150px; height: 150px; pointer-events: auto; }
         #action-btn { position: absolute; bottom: 80px; right: 60px; width: 80px; height: 80px; background: rgba(0, 255, 100, 0.6); border: 2px solid #00ff66; border-radius: 50%; pointer-events: auto; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 14px; user-select: none; box-shadow: 0 0 15px #00ff66; }
         #action-btn:active { transform: scale(0.9); background: rgba(0, 255, 100, 0.9); }
         #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 18px; z-index: 20; }
+        #chat { position: absolute; bottom: 50px; left: 10px; width: 300px; height: 150px; overflow-y: auto; background: rgba(0,0,0,0.5); color: white; padding: 5px; font-size: 12px; pointer-events: none; }
+        #chat-input { position: absolute; bottom: 10px; left: 10px; width: 300px; background: rgba(255,255,255,0.2); border: none; color: white; pointer-events: auto; }
+        #settings-btn { position: absolute; top: 20px; right: 20px; background: rgba(0, 255, 255, 0.6); border: 2px solid #00ffff; border-radius: 50%; width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; color: white; pointer-events: auto; box-shadow: 0 0 10px #00ffff; }
+        #editor-toggle { position: absolute; bottom: 150px; right: 60px; width: 80px; height: 40px; background: rgba(255, 0, 100, 0.6); border: 2px solid #ff0066; border-radius: 20px; pointer-events: auto; display: flex; justify-content: center; align-items: center; color: white; font-size: 12px; box-shadow: 0 0 15px #ff0066; display: none; }
+        #mode-btn { position: absolute; bottom: 200px; right: 60px; width: 80px; height: 40px; background: rgba(255, 255, 0, 0.6); border: 2px solid #ffff00; border-radius: 20px; pointer-events: auto; display: flex; justify-content: center; align-items: center; color: white; font-size: 12px; box-shadow: 0 0 15px #ffff00; display: none; }
     </style>
 </head>
 <body>
@@ -20,18 +26,24 @@
     <div id="loading">Conectando ao Servidor...</div>
     <div id="game-container"></div>
     <div id="ui-layer">
-        <div id="status-board">Jogadores Online: <span id="player-count">0</span><br><small>Seu ID: <span id="my-id">...</span></small></div>
+        <div id="status-board">Jogadores Online: <span id="player-count">0</span><br><small>Seu ID: <span id="my-id">...</span><br>Seu Nome: <span id="my-name">...</span></small></div>
         <div id="joystick-zone"></div>
+        <div id="look-zone"></div>
         <div id="action-btn">PULAR</div>
+        <div id="chat"></div>
+        <input id="chat-input" placeholder="Chat ( /cor cor mensagem )">
+        <div id="settings-btn">⚙</div>
+        <div id="editor-toggle">Editor: Off</div>
+        <div id="mode-btn">Modo: Colocar</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.0/nipplejs.min.js"></script>
 
     <script type="module">
-        // --- 1. CONFIGURAÇÃO FIREBASE (A sua config) ---
+        // --- 1. CONFIGURAÇÃO FIREBASE ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, onChildAdded, onChildChanged, onChildRemoved, onDisconnect } 
+        import { getDatabase, ref, set, push, onValue, onChildAdded, onChildChanged, onChildRemoved, onDisconnect, remove } 
         from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
         const firebaseConfig = {
@@ -45,37 +57,58 @@
             measurementId: "G-C4C057R7WL"
         };
 
-        // Inicializa Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Gera ID aleatório para o jogador atual
+        // Gera ID aleatório
         const myPlayerId = 'player_' + Math.random().toString(36).substr(2, 9);
         document.getElementById('my-id').innerText = myPlayerId;
         const playerRef = ref(db, 'players/' + myPlayerId);
 
+        // Nome do jogador
+        let myName = prompt('Digite seu nome:') || 'Player';
+        document.getElementById('my-name').innerText = myName;
+
         // --- 2. ENGINE 3D (THREE.JS) ---
         let scene, camera, renderer;
-        let myMesh;
-        let otherPlayers = {}; // Guarda os meshes dos outros jogadores
-        
+        let otherPlayers = {};
+        let blocks = {};
+        let collidables = [];
+        let platforms = []; // Para raycast chão
+
         // Controles
         let moveForward = 0, moveSide = 0;
-        let verticalVelocity = 0, canJump = true;
-        const gravity = 0.02;
+        let lookX = 0, lookY = 0;
+        let verticalVelocity = 0;
+        let canJump = true;
+        const gravity = 0.05;
+        const jumpHeight = 0.5;
+        const speed = 0.2;
+
+        let yawObject = new THREE.Object3D();
+        let pitchObject = new THREE.Object3D();
+        let raycaster = new THREE.Raycaster();
+        const up = new THREE.Vector3(0,1,0);
+
+        // Modos
+        let editorMode = false;
+        let removeMode = false;
 
         function initGame() {
             document.getElementById('loading').style.display = 'none';
 
             // Cena
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x202020);
-            scene.fog = new THREE.Fog(0x202020, 10, 60);
+            scene.background = new THREE.Color(0x000022);
+            scene.fog = new THREE.FogExp2(0x000022, 0.05);
 
             // Câmera
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 7, 12);
-            camera.lookAt(0, 0, 0);
+            pitchObject.add(camera);
+            yawObject.add(pitchObject);
+            scene.add(yawObject); // Adiciona ao scene para posição
+
+            yawObject.position.set(0, 1, 0);
 
             // Renderizador
             renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -84,77 +117,120 @@
             document.getElementById('game-container').appendChild(renderer.domElement);
 
             // Luzes
-            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            const ambientLight = new THREE.AmbientLight(0x4040ff, 0.5);
+            scene.add(ambientLight);
+            const hemiLight = new THREE.HemisphereLight(0xaaaaFF, 0x4444aa, 0.6);
+            scene.add(hemiLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
             dirLight.position.set(10, 20, 10);
             dirLight.castShadow = true;
             scene.add(dirLight);
 
-            // Chão (Grid)
-            const gridHelper = new THREE.GridHelper(200, 100, 0x00ff00, 0x444444);
-            scene.add(gridHelper);
-            const planeGeo = new THREE.PlaneGeometry(200, 200);
-            const planeMat = new THREE.MeshBasicMaterial({ visible: false });
-            const ground = new THREE.Mesh(planeGeo, planeMat);
+            // Chão indestrutível
+            const groundGeo = new THREE.PlaneGeometry(200, 200);
+            const groundMat = new THREE.MeshPhongMaterial({ color: 0x111133, emissive: 0x000022, shininess: 10 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
             ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
             scene.add(ground);
+            platforms.push(ground);
+            collidables.push(ground);
 
-            // CRIAR O JOGADOR LOCAL (CUBO CIANO)
-            const geometry = new THREE.BoxGeometry(1, 1, 1);
-            const material = new THREE.MeshPhongMaterial({ color: 0x00ffff }); // Ciano = Eu
-            myMesh = new THREE.Mesh(geometry, material);
-            myMesh.position.y = 0.5;
-            myMesh.castShadow = true;
-            scene.add(myMesh);
+            // Grid neon
+            const gridHelper = new THREE.GridHelper(200, 200, 0x00ffff, 0x004444);
+            gridHelper.position.y = 0.01;
+            scene.add(gridHelper);
 
-            // Configurar Joystick e Botões
+            // Configurar Controles
             setupControls();
 
-            // Iniciar Loop
-            animate();
+            // Carregar Blocos Persistentes
+            initBlocks();
 
-            // --- 3. REDE (MULTIPLAYER) ---
+            // Rede
             initNetwork();
+
+            // Chat
+            initChat();
+
+            // Settings
+            initSettings();
+
+            // Editor UI
+            initEditorUI();
+
+            // Loop
+            animate();
         }
 
-        // --- SISTEMA DE REDE ---
-        function initNetwork() {
-            // 1. Quando eu sair, me remove do banco de dados automaticamente
-            onDisconnect(playerRef).remove();
-
-            // 2. Cria minha posição inicial no banco
-            set(playerRef, {
-                x: 0,
-                y: 0.5,
-                z: 0,
-                color: 0x00ffff
+        // --- BLOCOS PERSISTENTES ---
+        function initBlocks() {
+            const blocksRef = ref(db, 'blocks');
+            onChildAdded(blocksRef, (snap) => {
+                const data = snap.val();
+                const key = snap.key;
+                if (blocks[key]) return;
+                const block = createBlockMesh(data);
+                scene.add(block);
+                collidables.push(block);
+                platforms.push(block); // Para pisar
+                blocks[key] = block;
             });
 
-            // 3. Escutar jogadores que ENTRAM
+            onChildRemoved(blocksRef, (snap) => {
+                const key = snap.key;
+                if (blocks[key]) {
+                    scene.remove(blocks[key]);
+                    const idx = collidables.indexOf(blocks[key]);
+                    if (idx > -1) collidables.splice(idx, 1);
+                    const pidx = platforms.indexOf(blocks[key]);
+                    if (pidx > -1) platforms.splice(pidx, 1);
+                    delete blocks[key];
+                }
+            });
+        }
+
+        function createBlockMesh(data) {
+            const geo = new THREE.BoxGeometry(1, 1, 1);
+            const mat = new THREE.MeshPhongMaterial({ color: 0x00ffaa, emissive: 0x004433, shininess: 50 });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(data.x, data.y, data.z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            return mesh;
+        }
+
+        // --- REDE ---
+        function initNetwork() {
+            onDisconnect(playerRef).remove();
+
+            set(playerRef, {
+                x: yawObject.position.x,
+                y: yawObject.position.y,
+                z: yawObject.position.z,
+                rotY: yawObject.rotation.y,
+                name: myName
+            });
+
             const allPlayersRef = ref(db, 'players');
             onChildAdded(allPlayersRef, (snapshot) => {
-                const addedPlayer = snapshot.val();
-                const addedPlayerId = snapshot.key;
-
-                // Se não sou eu, cria o boneco do inimigo
-                if (addedPlayerId !== myPlayerId) {
-                    createOtherPlayer(addedPlayerId, addedPlayer);
+                const data = snapshot.val();
+                const id = snapshot.key;
+                if (id !== myPlayerId) {
+                    createOtherPlayer(id, data);
                 }
                 updatePlayerCount();
             });
 
-            // 4. Escutar jogadores que se MOVEM
             onChildChanged(allPlayersRef, (snapshot) => {
                 const data = snapshot.val();
                 const id = snapshot.key;
-
                 if (id !== myPlayerId && otherPlayers[id]) {
-                    // Atualiza a posição do outro jogador suavemente seria ideal, mas aqui vai direto
                     otherPlayers[id].position.set(data.x, data.y, data.z);
+                    otherPlayers[id].rotation.y = data.rotY || 0;
                 }
             });
 
-            // 5. Escutar jogadores que SAEM
             onChildRemoved(allPlayersRef, (snapshot) => {
                 const id = snapshot.key;
                 if (otherPlayers[id]) {
@@ -166,92 +242,261 @@
         }
 
         function createOtherPlayer(id, data) {
-            const geo = new THREE.BoxGeometry(1, 1, 1);
-            // Outros jogadores são Vermelhos
-            const mat = new THREE.MeshPhongMaterial({ color: 0xff0055 }); 
+            const geo = new THREE.BoxGeometry(1, 1.8, 1); // Altura como Minecraft
+            const mat = new THREE.MeshPhongMaterial({ color: 0xff00ff, emissive: 0x440044, shininess: 100 });
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.set(data.x, data.y, data.z);
+            mesh.rotation.y = data.rotY || 0;
             mesh.castShadow = true;
-            
             scene.add(mesh);
             otherPlayers[id] = mesh;
         }
 
         function updatePlayerCount() {
-            // +1 porque conta eu mesmo
             const count = Object.keys(otherPlayers).length + 1;
             document.getElementById('player-count').innerText = count;
         }
 
         // --- CONTROLES ---
         function setupControls() {
+            // Joystick Movimento
             const joystickZone = document.getElementById('joystick-zone');
             const manager = nipplejs.create({ zone: joystickZone, mode: 'static', position: { left: '50%', top: '50%' }, color: 'white' });
 
             manager.on('move', (evt, data) => {
                 if (data.vector) {
-                    moveForward = -data.vector.y;
-                    moveSide = data.vector.x;
+                    moveForward = data.vector.y;  // Invertido para corrigir direção forward
+                    moveSide = -data.vector.x;    // Invertido para corrigir direção side
                 }
             });
             manager.on('end', () => { moveForward = 0; moveSide = 0; });
 
+            // Joystick Olhar
+            const lookZone = document.getElementById('look-zone');
+            const lookManager = nipplejs.create({ zone: lookZone, mode: 'static', position: { left: '50%', top: '50%' }, color: 'red' });
+
+            lookManager.on('move', (evt, data) => {
+                if (data.vector) {
+                    lookX = data.vector.x;
+                    lookY = data.vector.y;
+                }
+            });
+            lookManager.on('end', () => { lookX = 0; lookY = 0; });
+
+            // Pulo
             const jumpBtn = document.getElementById('action-btn');
             const jumpAction = (e) => {
                 e.preventDefault();
-                if (myMesh.position.y <= 0.6) {
-                    verticalVelocity = 0.4;
+                if (canJump && !editorMode) {
+                    verticalVelocity = jumpHeight;
                     canJump = false;
                 }
             };
             jumpBtn.addEventListener('touchstart', jumpAction);
             jumpBtn.addEventListener('mousedown', jumpAction);
+
+            // Editor Click/Touch
+            renderer.domElement.addEventListener('touchstart', onScreenTouch);
+            renderer.domElement.addEventListener('mousedown', onScreenTouch);
         }
 
-        // --- LOOP PRINCIPAL ---
+        function onScreenTouch(e) {
+            if (!editorMode) return;
+            e.preventDefault();
+            let clientX, clientY;
+            if (e.type === 'touchstart') {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            const mouse = new THREE.Vector2(
+                (clientX / window.innerWidth) * 2 - 1,
+                -(clientY / window.innerHeight) * 2 + 1
+            );
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(collidables);
+            if (intersects.length > 0) {
+                const inter = intersects[0];
+                if (removeMode) {
+                    // Remover bloco (se não for chão)
+                    if (inter.object !== collidables[0]) { // collidables[0] é chão
+                        const pos = inter.object.position;
+                        const key = Math.round(pos.x) + '_' + Math.round(pos.y) + '_' + Math.round(pos.z);
+                        remove(ref(db, 'blocks/' + key));
+                    }
+                } else {
+                    // Colocar bloco
+                    const normal = inter.face.normal.clone();
+                    const newPos = inter.point.add(normal.multiplyScalar(0.5)).clone();
+                    newPos.x = Math.round(newPos.x);
+                    newPos.y = Math.round(newPos.y);
+                    newPos.z = Math.round(newPos.z);
+                    const key = newPos.x + '_' + newPos.y + '_' + newPos.z;
+                    if (!blocks[key]) {
+                        set(ref(db, 'blocks/' + key), { x: newPos.x, y: newPos.y, z: newPos.z, type: 1 });
+                    }
+                }
+            }
+        }
+
+        // --- CHAT ---
+        function initChat() {
+            const chatRef = ref(db, 'chat');
+            const chatDiv = document.getElementById('chat');
+            onChildAdded(chatRef, (snap) => {
+                const msg = snap.val();
+                const html = `<span style="color: ${msg.color || 'white'};">${msg.name}: ${msg.text}</span><br>`;
+                chatDiv.innerHTML += html;
+                chatDiv.scrollTop = chatDiv.scrollHeight;
+            });
+
+            const input = document.getElementById('chat-input');
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    let text = input.value.trim();
+                    if (text) {
+                        let color = 'white';
+                        if (text.startsWith('/cor ')) {
+                            const parts = text.split(' ');
+                            color = parts[1];
+                            text = parts.slice(2).join(' ');
+                        }
+                        if (text) {
+                            push(chatRef, { name: myName, text, color });
+                        }
+                        input.value = '';
+                    }
+                }
+            });
+        }
+
+        // --- SETTINGS ---
+        function initSettings() {
+            const settingsBtn = document.getElementById('settings-btn');
+            settingsBtn.addEventListener('click', () => {
+                const newName = prompt('Novo nome?', myName);
+                if (newName) {
+                    myName = newName;
+                    document.getElementById('my-name').innerText = myName;
+                    set(playerRef, { ...getPlayerData() , name: myName });
+                }
+                const editorConfirm = confirm('Ativar modo editor?');
+                editorMode = editorConfirm;
+                updateEditorUI();
+            });
+        }
+
+        // --- EDITOR UI ---
+        function initEditorUI() {
+            const modeBtn = document.getElementById('mode-btn');
+            modeBtn.addEventListener('click', () => {
+                removeMode = !removeMode;
+                modeBtn.innerText = removeMode ? 'Modo: Remover' : 'Modo: Colocar';
+            });
+        }
+
+        function updateEditorUI() {
+            document.getElementById('joystick-zone').style.display = editorMode ? 'none' : 'block';
+            document.getElementById('look-zone').style.display = editorMode ? 'none' : 'block';
+            document.getElementById('action-btn').style.display = editorMode ? 'none' : 'block';
+            document.getElementById('mode-btn').style.display = editorMode ? 'block' : 'none';
+            // Editor toggle not needed since set in settings
+        }
+
+        // --- LOOP ---
         function animate() {
             requestAnimationFrame(animate);
 
-            // Movimento Local
-            const speed = 0.3;
-            myMesh.position.x += moveSide * speed;
-            myMesh.position.z += moveForward * speed;
+            if (editorMode) {
+                renderer.render(scene, camera);
+                return; // No movement in editor, but still render
+            }
 
-            // Pulo
-            myMesh.position.y += verticalVelocity;
+            // Olhar
+            yawObject.rotation.y -= lookX * 0.05;
+            pitchObject.rotation.x += lookY * 0.05;  // Invertido para corrigir pitch (olhar para cima/baixo)
+            pitchObject.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitchObject.rotation.x));
+
+            // Movimento
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            direction.y = 0;
+            direction.normalize();
+
+            const sideDir = new THREE.Vector3().crossVectors(direction, up).normalize();
+
+            const velX = (direction.x * moveForward + sideDir.x * moveSide) * speed;
+            const velZ = (direction.z * moveForward + sideDir.z * moveSide) * speed;
+
+            yawObject.position.x += velX;
+            yawObject.position.z += velZ;
+
+            // Gravidade e Pulo
+            yawObject.position.y += verticalVelocity;
             verticalVelocity -= gravity;
-            if (myMesh.position.y < 0.5) {
-                myMesh.position.y = 0.5;
+
+            // Raycast chão
+            raycaster.set(yawObject.position.clone().add(new THREE.Vector3(0, 10, 0)), new THREE.Vector3(0, -1, 0));
+            const intersects = raycaster.intersectObjects(platforms);
+            let floorY = 0;
+            if (intersects.length > 0) {
+                floorY = intersects[0].point.y;
+            }
+            if (yawObject.position.y < floorY + 1) { // Altura jogador ~1
+                yawObject.position.y = floorY + 1;
                 verticalVelocity = 0;
+                canJump = true;
             }
 
-            // Enviar minha nova posição para o Firebase
-            // (Otimização: só enviar se moveu significativamente para economizar dados)
-            if (moveSide !== 0 || moveForward !== 0 || myMesh.position.y > 0.5) {
-                set(playerRef, {
-                    x: myMesh.position.x,
-                    y: myMesh.position.y,
-                    z: myMesh.position.z
-                });
-            }
+            // Colisão paredes (simples, checar proposed pos)
+            let proposed = yawObject.position.clone();
+            proposed.x += velX;
+            if (isColliding(proposed)) yawObject.position.x -= velX / 2; // Ajuste simples
+            proposed = yawObject.position.clone();
+            proposed.z += velZ;
+            if (isColliding(proposed)) yawObject.position.z -= velZ / 2;
 
-            // Câmera segue o jogador
-            camera.position.x += (myMesh.position.x - camera.position.x) * 0.1;
-            camera.position.z += (myMesh.position.z + 10 - camera.position.z) * 0.1;
-            camera.lookAt(myMesh.position);
+            // Enviar posição
+            if (moveForward !== 0 || moveSide !== 0 || verticalVelocity !== 0 || lookX !== 0 || lookY !== 0) {
+                set(playerRef, getPlayerData());
+            }
 
             renderer.render(scene, camera);
         }
 
-        // Ajuste de tela
+        function getPlayerData() {
+            return {
+                x: yawObject.position.x,
+                y: yawObject.position.y,
+                z: yawObject.position.z,
+                rotY: yawObject.rotation.y,
+                name: myName
+            };
+        }
+
+        function isColliding(pos) {
+            const playerBox = new THREE.Box3(
+                new THREE.Vector3(pos.x - 0.5, pos.y - 1, pos.z - 0.5),
+                new THREE.Vector3(pos.x + 0.5, pos.y + 0.8, pos.z + 0.5)
+            );
+            for (let obj of collidables) {
+                if (obj === collidables[0]) continue; // Ignora chão
+                const objBox = new THREE.Box3().setFromObject(obj);
+                if (objBox.intersectsBox(playerBox)) return true;
+            }
+            return false;
+        }
+
+        // Resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Start
         initGame();
     </script>
 </body>
-</html>
+    </html>
