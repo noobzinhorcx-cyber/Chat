@@ -3,424 +3,569 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Penguin Chef - Chat & Cores</title>
+    <title>Z-EMOJI ULTIMATE ONLINE</title>
     <style>
-        :root { --main-red: #ff4757; --main-blue: #2e86de; --gold: #f1c40f; }
-        body { margin: 0; overflow: hidden; background: #2f3542; font-family: sans-serif; touch-action: none; user-select: none; }
+        :root { --p-color: #00ff00; }
+        body { margin: 0; background: #0a0a0a; color: #eee; font-family: 'Courier New', Courier, monospace; overflow: hidden; touch-action: none; user-select: none; }
         
-        /* MENU */
-        #menu { position: absolute; inset: 0; background: linear-gradient(135deg, #1e272e, #485460); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; color: white; text-align: center; }
-        h1 { font-size: 2.5rem; text-shadow: 0 4px 10px rgba(0,0,0,0.5); margin: 0 0 20px 0; }
-        input.menu-input { padding: 15px; font-size: 18px; border-radius: 12px; border: none; margin: 8px; width: 220px; text-align: center; text-transform: uppercase; }
-        button { padding: 15px 30px; font-size: 18px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; color: white; margin: 5px; box-shadow: 0 4px 0 rgba(0,0,0,0.3); }
-        button:active { transform: translateY(4px); box-shadow: none; }
-        #create-btn { background: var(--main-blue); }
-        #join-btn { background: var(--main-red); }
+        /* Telas de Menu */
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; transition: 0.5s; }
+        input { padding: 12px; margin: 10px; border-radius: 5px; border: 1px solid var(--p-color); background: #222; color: #fff; width: 250px; text-align: center; }
+        button { padding: 12px 25px; margin: 5px; cursor: pointer; background: var(--p-color); border: none; font-weight: bold; border-radius: 5px; width: 275px; color: #000; }
+        button:hover { background: #00cc00; transform: scale(1.05); }
 
-        /* JOGO */
-        #game-container { position: relative; width: 100vw; height: 100vh; display: none; }
-        canvas { display: block; }
+        /* Jogo */
+        #game-world { position: absolute; width: 3000px; height: 3000px; background-image: radial-gradient(#333 1px, transparent 1px); background-size: 50px 50px; transform: translate(0,0); }
+        .entity { position: absolute; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 30px; transform: translate(-50%, -50%); transition: transform 0.1s linear; pointer-events: none; }
+        .player-label { position: absolute; top: -20px; font-size: 10px; white-space: nowrap; color: #0f0; width: 100%; text-align: center; }
         
-        #hud { position: absolute; top: 0; width: 100%; pointer-events: none; padding: 10px; box-sizing: border-box; display: flex; justify-content: space-between; font-weight: bold; color: white; text-shadow: 2px 2px 0 #000; font-size: 20px; z-index: 10; }
-        #room-code { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 10px; font-size: 16px; color: white; z-index: 10; }
-
-        /* CHAT */
-        #chat-ui { position: absolute; top: 80px; left: 10px; width: 220px; height: 160px; display: flex; flex-direction: column; z-index: 50; font-family: sans-serif; pointer-events: auto; }
-        #chat-msgs { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.6); border-radius: 8px; padding: 5px; color: white; font-size: 11px; margin-bottom: 5px; list-style: none; -webkit-overflow-scrolling: touch; }
-        #chat-msgs::-webkit-scrollbar { width: 4px; }
-        #chat-msgs::-webkit-scrollbar-thumb { background: #888; border-radius: 2px; }
-        .msg-item { margin-bottom: 4px; word-wrap: break-word; }
-        .msg-system { color: #f1c40f; font-style: italic; }
-        #chat-form { display: flex; gap: 5px; }
-        #chat-input { flex: 1; background: rgba(255,255,255,0.9); border: none; padding: 6px; border-radius: 4px; font-size: 12px; outline: none; }
-        #chat-send { background: #2ecc71; border: none; padding: 0 10px; border-radius: 4px; color: white; font-weight: bold; font-size: 16px; cursor: pointer; }
-
-        /* CONTROLES */
-        #controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 30px; box-sizing: border-box; pointer-events: none; z-index: 20; }
-        #joystick-zone { width: 120px; height: 120px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; position: relative; pointer-events: auto; }
-        #joystick-nub { width: 50px; height: 50px; background: white; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+        /* UI de Combate */
+        #hud { position: fixed; top: 10px; left: 10px; z-index: 100; pointer-events: none; text-shadow: 2px 2px #000; }
+        .stat-box { background: rgba(0,0,0,0.6); padding: 10px; border-left: 4px solid var(--p-color); margin-bottom: 5px; border-radius: 0 5px 5px 0; }
         
-        .action-group { display: flex; flex-direction: column; gap: 15px; pointer-events: auto; align-items: flex-end; }
-        .btn { width: 90px; height: 90px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; border: 3px solid rgba(255,255,255,0.3); text-shadow: 1px 1px 2px black; user-select: none; }
-        #action-btn { background: #ff4757; box-shadow: 0 6px #b33939; }
-        #boost-btn { width: 70px; height: 70px; background: #2e86de; box-shadow: 0 6px #1d5ca3; font-size: 12px; }
-        .btn:active { transform: translateY(6px); box-shadow: none; }
-        .disabled { filter: grayscale(1); opacity: 0.5; pointer-events: none; }
+        /* Chat */
+        #chat-area { position: fixed; bottom: 180px; left: 20px; width: 300px; z-index: 500; }
+        #chat-log { height: 120px; overflow-y: auto; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 5px; display: flex; flex-direction: column-reverse; }
+        #chat-input { width: 100%; box-sizing: border-box; background: rgba(50,50,50,0.8); border: 1px solid #555; padding: 8px; color: #fff; border-radius: 5px; }
 
-        #game-over { position: absolute; inset: 0; background: rgba(0,0,0,0.95); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 200; color: white; }
+        /* Controles */
+        .joy-container { position: fixed; bottom: 30px; width: 140px; height: 140px; background: rgba(255,255,255,0.05); border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); touch-action: none; z-index: 900; }
+        #move-joy { left: 30px; }
+        #shoot-joy { right: 30px; border-color: rgba(255,0,0,0.2); }
+        .stick { position: absolute; width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; top: 40px; left: 40px; }
+        
+        .bullet { position: absolute; font-size: 15px; z-index: 10; pointer-events: none; }
+        .xp-bar-container { position: fixed; top: 0; left: 0; width: 100%; height: 5px; background: #222; }
+        #xp-bar-fill { height: 100%; width: 0%; background: #ffcc00; transition: 0.3s; }
     </style>
 </head>
 <body>
 
-    <div id="menu">
-        <h1>🐧 PENGUIN CHEF</h1>
-        <input type="text" id="username" class="menu-input" placeholder="Seu Nome" maxlength="8">
-        <input type="text" id="room-input" class="menu-input" placeholder="CÓD SALA (Ex: ABCD)" maxlength="5">
-        <div>
-            <button id="create-btn">CRIAR SALA</button>
-            <button id="join-btn">ENTRAR</button>
-        </div>
-    </div>
+<div class="xp-bar-container"><div id="xp-bar-fill"></div></div>
 
-    <div id="game-over">
-        <h1>💀 FIM DE JOGO</h1>
-        <p>Clientes perdidos: 5/5</p>
-        <button onclick="location.reload()" style="background: white; color: black;">REINICIAR</button>
-    </div>
+<div id="menu-screen" class="overlay">
+    <h1 style="font-size: 3em; color: var(--p-color);">🧟 Z-EMOJI.IO</h1>
+    <input type="text" id="player-name" placeholder="Apelido..." maxlength="12">
+    <button onclick="initGame('public')">JOGAR PARTIDA PÚBLICA</button>
+    <button onclick="showPrivateMenu()" style="background:#555">PARTIDA PRIVADA</button>
+</div>
 
-    <div id="game-container">
-        <canvas id="gameCanvas"></canvas>
+<div id="private-menu" class="overlay" style="display:none">
+    <h2>SALA PRIVADA</h2>
+    <input type="text" id="room-code" placeholder="Código da Sala">
+    <button onclick="initGame('create-private')">CRIAR SALA</button>
+    <button onclick="initGame('join-private')">ENTRAR NA SALA</button>
+    <button onclick="backToMenu()" style="background:#444">VOLTAR</button>
+</div>
+
+<div id="lobby-screen" class="overlay" style="display:none">
+    <h2 id="lobby-status">Aguardando Sobreviventes...</h2>
+    <div style="font-size: 40px; margin: 20px;" id="timer-display">50</div>
+    <p id="room-id-tag"></p>
+    <div id="player-list-lobby"></div>
+</div>
+
+<div id="hud">
+    <div class="stat-box">
+        <div id="gun-display">👊 Soco Nível 1</div>
+        <div id="kill-display">Kills: 0</div>
+    </div>
+    <div class="stat-box">
+        <div id="hp-display">❤️❤️❤️</div>
+    </div>
+</div>
+
+<div id="chat-area">
+    <div id="chat-log"></div>
+    <input type="text" id="chat-input" placeholder="Pressione Enter para falar... (/Cor red)">
+</div>
+
+<div id="game-world">
+    <div id="entities-layer"></div>
+</div>
+
+<div id="move-joy" class="joy-container"><div class="stick" id="move-stick"></div></div>
+<div id="shoot-joy" class="joy-container"><div class="stick" id="shoot-stick"></div></div>
+
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+    import { getDatabase, ref, set, onValue, push, update, onDisconnect, remove, get } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+
+    // --- CONFIGURAÇÃO ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q", // Use sua chave real aqui
+        authDomain: "chatrucoy.firebaseapp.com",
+        databaseURL: "https://chatrucoy-default-rtdb.firebaseio.com",
+        projectId: "chatrucoy"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // --- CONSTANTES DO JOGO ---
+    const WEAPONS = [
+        {n: "👊 Soco", d: 1, s: 200}, {n: "🔪 Faca", d: 2, s: 250}, {n: "🏏 Taco", d: 3, s: 300},
+        {n: "🪓 Machado", d: 5, s: 400}, {n: "🔫 Glock", d: 4, s: 600}, {n: "🔫 Uzi", d: 3, s: 800},
+        {n: "🔫 Ak-47", d: 6, s: 700}, {n: "🔫 Sniper", d: 15, s: 1000}, {n: "🔥 Lança-chamas", d: 2, s: 900},
+        {n: "⚡ Laser", d: 8, s: 1200}, {n: "💣 Granada", d: 20, s: 500}, {n: "🏹 Arco", d: 7, s: 650},
+        {n: "🔱 Tridente", d: 10, s: 750}, {n: "⚔️ Katana", d: 12, s: 850}, {n: "🧨 Dinamite", d: 25, s: 400},
+        {n: "🤜 Boxe", d: 9, s: 350}, {n: "🛰️ Satélite", d: 30, s: 1500}, {n: "🌟 Estrela", d: 18, s: 900},
+        {n: "☄️ Meteoro", d: 40, s: 1800}, {n: "👑 Cajado Real", d: 100, s: 2000}
+    ];
+
+    const ZOMBIE_TYPES = [
+        "🧟", "🧟‍♂️", "🧟‍♀️", "💀", "👻", "🧛", "👽", "👹", "🤡", "👺", "🎃", "🤖", "🦂", "🐍", "🐺", "🕷️", "🦟", "🐗", 
+        "🐲", "👾" // Bosses: 🐲 (Vida alta), 👾 (Teleporte aleatório)
+    ];
+
+    // --- ESTADO GLOBAL ---
+    let myId = "P_" + Math.random().toString(36).substr(2, 5);
+    let roomID = "";
+    let isHost = false;
+    let gameState = 'MENU'; // MENU, LOBBY, PLAYING
+    let myData = {
+        x: 1500, y: 1500, hp: 5, kills: 0, 
+        weaponIdx: 0, nick: "Noob", color: "#fff",
+        vx: 0, vy: 0, angle: 0
+    };
+    
+    let players = {};
+    let zombies = {};
+    let items = {};
+    let bullets = [];
+    let lastShootTime = 0;
+
+    // --- SISTEMA DE CÂMERA ---
+    function updateCamera() {
+        const camX = window.innerWidth / 2 - myData.x;
+        const camY = window.innerHeight / 2 - myData.y;
+        document.getElementById('game-world').style.transform = `translate(${camX}px, ${camY}px)`;
+    }
+
+    // --- SISTEMA DE SALAS ---
+    window.initGame = async (mode) => {
+        const nickInput = document.getElementById('player-name').value;
+        myData.nick = nickInput || "Emoji_" + Math.random().toString(36).substr(2,3);
         
-        <div id="hud">
-            <div>💰 <span id="score">0</span></div>
-            <div>😡 <span id="lost-count">0</span>/5</div>
-        </div>
-        <div id="room-code">SALA: ----</div>
-
-        <div id="chat-ui">
-            <div id="chat-msgs"></div>
-            <div id="chat-form">
-                <input type="text" id="chat-input" placeholder="Msg ou /cor..." autocomplete="off">
-                <button id="chat-send">➤</button>
-            </div>
-        </div>
-
-        <div id="controls">
-            <div id="joystick-zone"><div id="joystick-nub"></div></div>
-            <div class="action-group">
-                <div id="boost-btn" class="btn">NITRO</div>
-                <div id="action-btn" class="btn">COZINHAR</div>
-            </div>
-        </div>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-        import { getDatabase, ref, set, onValue, update, push, remove, onDisconnect, get, runTransaction, onChildAdded } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q",
-            authDomain: "chatrucoy.firebaseapp.com",
-            databaseURL: "https://chatrucoy-default-rtdb.firebaseio.com",
-            projectId: "chatrucoy"
-        };
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
-        // --- SISTEMA DE SONS ---
-        const sfx = {
-            bgm: new Audio('https://actions.google.com/sounds/v1/science_fiction/glitchy_digital_opening.ogg'),
-            cook: new Audio('https://actions.google.com/sounds/v1/water/liquid_simmering_loop.ogg'),
-            success: new Audio('https://actions.google.com/sounds/v1/cartoon/clime_bing_bing.ogg'),
-            fail: new Audio('https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg'),
-            nitro: new Audio('https://actions.google.com/sounds/v1/transportation/car_passing_by.ogg')
-        };
-        sfx.bgm.loop = true; sfx.bgm.volume = 0.4;
-        sfx.cook.loop = true; 
-
-        function initAudio() {
-            sfx.bgm.play().catch(() => console.log("Erro BGM"));
-            sfx.success.volume = 0; sfx.success.play().then(() => { sfx.success.pause(); sfx.success.volume = 0.5; });
+        if(mode === 'public') {
+            roomID = "PUB_MAP_1"; 
+        } else if(mode === 'create-private') {
+            roomID = "PRIV_" + Math.random().toString(36).substr(2,5).toUpperCase();
+        } else {
+            roomID = document.getElementById('room-code').value.toUpperCase();
         }
 
-        const DISHES = [
-            { id: 1, icon: "🍔", time: 2000 }, { id: 2, icon: "🍕", time: 2500 },
-            { id: 3, icon: "🍣", time: 1500 }, { id: 4, icon: "🥗", time: 1000 },
-            { id: 5, icon: "🍜", time: 3000 }, { id: 6, icon: "🍦", time: 500 }
-        ];
+        document.querySelectorAll('.overlay').forEach(e => e.style.display = 'none');
+        document.getElementById('lobby-screen').style.display = 'flex';
+        document.getElementById('room-id-tag').innerText = "CÓDIGO: " + roomID;
+        
+        joinFirebaseRoom();
+    };
 
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+    function joinFirebaseRoom() {
+        const roomRef = ref(db, `rooms/${roomID}`);
         
-        let myId = 'p' + Math.floor(Math.random()*9999);
-        let myName = "Chef";
-        let roomId = null, isHost = false;
-        let players = {}, customers = {}, score = 0, lostCount = 0;
-        let joystick = { active: false, dx: 0, dy: 0 };
-        let actionHeld = false, cookTimer = 0, currentStation = null;
-        let layout = { stations: [], tables: [], trash: {} };
-        let isBoosting = false;
+        // Verifica se é host
+        get(ref(db, `rooms/${roomID}/host`)).then(snap => {
+            if(!snap.exists()) {
+                set(ref(db, `rooms/${roomID}/host`), myId);
+                isHost = true;
+                startLobbyTimer();
+            }
+        });
+
+        // Sync Player
+        set(ref(db, `rooms/${roomID}/players/${myId}`), myData);
+        onDisconnect(ref(db, `rooms/${roomID}/players/${myId}`)).remove();
+
+        // Listeners
+        onValue(ref(db, `rooms/${roomID}/status`), (snap) => {
+            if(snap.val() === 'STARTED') startGame();
+        });
+
+        onValue(ref(db, `rooms/${roomID}/players`), (snap) => {
+            players = snap.val() || {};
+            renderPlayers();
+        });
+
+        onValue(ref(db, `rooms/${roomID}/zombies`), (snap) => {
+            zombies = snap.val() || {};
+            renderZombies();
+        });
+
+        onValue(ref(db, `rooms/${roomID}/items`), (snap) => {
+            items = snap.val() || {};
+            renderItems();
+        });
+
+        onValue(ref(db, `rooms/${roomID}/chat`), (snap) => {
+            updateChatUI(snap.val());
+        });
+    }
+
+    function startLobbyTimer() {
+        let count = 50;
+        const itv = setInterval(() => {
+            count--;
+            update(ref(db, `rooms/${roomID}`), { timer: count });
+            if(count <= 0) {
+                clearInterval(itv);
+                set(ref(db, `rooms/${roomID}/status`), 'STARTED');
+            }
+        }, 1000);
         
-        // CHAT VARS
-        let myChatColor = '#ffffff';
-        const colorMap = {
-            'vermelho': '#ff4757', 'azul': '#2e86de', 'verde': '#2ecc71',
-            'amarelo': '#f1c40f', 'rosa': '#fd79a8', 'roxo': '#a55eea',
-            'laranja': '#e67e22', 'branco': '#ffffff'
+        onValue(ref(db, `rooms/${roomID}/timer`), (snap) => {
+            document.getElementById('timer-display').innerText = snap.val() || 50;
+        });
+    }
+
+    function startGame() {
+        gameState = 'PLAYING';
+        document.getElementById('lobby-screen').style.opacity = '0';
+        setTimeout(() => document.getElementById('lobby-screen').style.display = 'none', 500);
+        
+        if(isHost) {
+            spawnInitialZombies();
+            setInterval(hostLogic, 2000); // Lógica de IA só roda no Host
+        }
+        
+        requestAnimationFrame(gameLoop);
+    }
+
+    // --- GAME ENGINE ---
+    function gameLoop() {
+        if(gameState !== 'PLAYING') return;
+
+        // Movimentação
+        myData.x += myData.vx * 6;
+        myData.y += myData.vy * 6;
+
+        // Limites do mapa
+        myData.x = Math.max(0, Math.min(3000, myData.x));
+        myData.y = Math.max(0, Math.min(3000, myData.y));
+
+        updateCamera();
+        syncPosition();
+        processBullets();
+        checkCollisions();
+        
+        requestAnimationFrame(gameLoop);
+    }
+
+    function syncPosition() {
+        update(ref(db, `rooms/${roomID}/players/${myId}`), {
+            x: myData.x, y: myData.y, kills: myData.kills, weaponIdx: myData.weaponIdx
+        });
+    }
+
+    // --- TIROS E ARMAS ---
+    function shoot(tx, ty) {
+        const now = Date.now();
+        const weapon = WEAPONS[myData.weaponIdx];
+        if(now - lastShootTime < (2000 - weapon.s)) return;
+        
+        lastShootTime = now;
+        const angle = Math.atan2(ty, tx);
+        const bId = "B_" + now;
+        
+        const bData = {
+            id: bId,
+            x: myData.x, y: myData.y,
+            vx: Math.cos(angle) * 15,
+            vy: Math.sin(angle) * 15,
+            owner: myId,
+            dist: 0
         };
+        
+        bullets.push(bData);
+        createBulletElement(bData);
+    }
 
-        // --- INICIAR JOGO ---
-        document.getElementById('create-btn').onclick = () => { initAudio(); start(true); };
-        document.getElementById('join-btn').onclick = () => { initAudio(); start(false); };
+    function createBulletElement(b) {
+        const el = document.createElement('div');
+        el.id = b.id;
+        el.className = 'bullet';
+        el.innerText = '⏺️';
+        document.getElementById('game-world').appendChild(el);
+    }
 
-        async function start(host) {
-            myName = document.getElementById('username').value || "Chef";
-            const codeInput = document.getElementById('room-input').value.toUpperCase();
-            
-            // LIMPAR CHAT AO ENTRAR
-            document.getElementById('chat-msgs').innerHTML = '';
+    function processBullets() {
+        bullets.forEach((b, index) => {
+            b.x += b.vx;
+            b.y += b.vy;
+            b.dist += 15;
 
-            if(host) {
-                roomId = "";
-                const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-                for(let i=0; i<4; i++) roomId += chars.charAt(Math.floor(Math.random()*chars.length));
-                await set(ref(db, `rooms/${roomId}`), { score: 0, lostCount: 0, hostId: myId, startTime: Date.now() });
-            } else {
-                if(codeInput.length < 4) return alert("Código inválido!");
-                roomId = codeInput;
-                const check = await get(ref(db, `rooms/${roomId}`));
-                if(!check.exists()) return alert("Sala não encontrada!");
+            const el = document.getElementById(b.id);
+            if(el) {
+                el.style.left = b.x + 'px';
+                el.style.top = b.y + 'px';
             }
 
-            isHost = host;
-            document.getElementById('menu').style.display = 'none';
-            document.getElementById('game-container').style.display = 'block';
-            document.getElementById('room-code').innerText = "SALA: " + roomId;
-
-            setupPlayer(myName);
-            setupChat(); // Inicia o chat
-            gameLoop();
-        }
-
-        // --- LÓGICA DO CHAT ---
-        function setupChat() {
-            const chatInput = document.getElementById('chat-input');
-            const chatBtn = document.getElementById('chat-send');
-            const chatList = document.getElementById('chat-msgs');
-
-            // Enviar Msg
-            const sendMsg = () => {
-                const txt = chatInput.value.trim();
-                if(!txt) return;
-
-                // Comando /cor
-                if(txt.toLowerCase().startsWith('/cor ')) {
-                    const colorName = txt.split(' ')[1].toLowerCase();
-                    if(colorMap[colorName]) {
-                        myChatColor = colorMap[colorName];
-                        addSystemMsg(`Cor do texto alterada para ${colorName.toUpperCase()}!`);
-                    } else {
-                        addSystemMsg(`Cores: vermelho, azul, verde, amarelo, rosa, roxo, laranja.`);
-                    }
-                    chatInput.value = '';
-                    return;
-                }
-
-                push(ref(db, `rooms/${roomId}/chat`), {
-                    name: myName,
-                    text: txt,
-                    color: myChatColor,
-                    ts: Date.now()
-                });
-                chatInput.value = '';
-            };
-
-            chatBtn.onclick = sendMsg;
-            // Evitar que o jogo se mova ao digitar (mas permitir Enter)
-            chatInput.onkeydown = (e) => {
-                e.stopPropagation(); 
-                if(e.key === 'Enter') sendMsg();
-            };
-            // Evitar toque no joystick ao clicar no chat
-            document.getElementById('chat-ui').ontouchstart = (e) => e.stopPropagation();
-
-            // Receber Msgs
-            onChildAdded(ref(db, `rooms/${roomId}/chat`), (snap) => {
-                const data = snap.val();
-                const li = document.createElement('div');
-                li.className = 'msg-item';
-                li.innerHTML = `<span style="color:${data.color}; font-weight:bold">${data.name}:</span> ${data.text}`;
-                chatList.appendChild(li);
-                chatList.scrollTop = chatList.scrollHeight;
-            });
-        }
-
-        function addSystemMsg(text) {
-            const chatList = document.getElementById('chat-msgs');
-            const li = document.createElement('div');
-            li.className = 'msg-item msg-system';
-            li.textContent = `[SISTEMA] ${text}`;
-            chatList.appendChild(li);
-            chatList.scrollTop = chatList.scrollHeight;
-        }
-
-        function setupPlayer(name) {
-            resize();
-            const playerRef = ref(db, `rooms/${roomId}/players/${myId}`);
-            set(playerRef, { 
-                name, x: canvas.width/2, y: canvas.height/2, 
-                color: `hsl(${Math.random()*360}, 70%, 50%)`, holding: null 
-            });
-            onDisconnect(playerRef).remove();
-
-            onValue(ref(db, `rooms/${roomId}`), (snap) => {
-                const data = snap.val();
-                if(!data) return;
-                players = data.players || {};
-                customers = data.customers || {};
-                score = data.score || 0;
-                
-                if(data.lostCount > lostCount) sfx.fail.play();
-                lostCount = data.lostCount || 0;
-                
-                document.getElementById('score').innerText = score;
-                document.getElementById('lost-count').innerText = lostCount;
-                if(lostCount >= 5) {
-                    document.getElementById('game-over').style.display = 'flex';
-                    sfx.bgm.pause();
+            // Colisão com Zumbis (Localmente para feedback rápido)
+            Object.keys(zombies).forEach(zId => {
+                const z = zombies[zId];
+                const d = Math.hypot(b.x - z.x, b.y - z.y);
+                if(d < 30) {
+                    hitZombie(zId);
+                    destroyBullet(index);
                 }
             });
 
-            if(isHost) setInterval(hostLogic, 2000);
+            if(b.dist > 800) destroyBullet(index);
+        });
+    }
+
+    function destroyBullet(idx) {
+        const b = bullets[idx];
+        if(b) {
+            const el = document.getElementById(b.id);
+            if(el) el.remove();
+            bullets.splice(idx, 1);
         }
+    }
 
-        function hostLogic() {
-            if(Object.keys(customers).length < 3 && Math.random() > 0.4) {
-                const table = layout.tables[Math.floor(Math.random()*layout.tables.length)];
-                const occupied = Object.values(customers).some(c => c.tableId === table.id);
-                if(!occupied) {
-                    push(ref(db, `rooms/${roomId}/customers`), { 
-                        tableId: table.id, 
-                        wanted: DISHES[Math.floor(Math.random()*DISHES.length)].id, 
-                        patience: 100 
-                    });
-                }
-            }
-            Object.keys(customers).forEach(k => {
-                const p = customers[k].patience - 5;
-                if(p <= 0) {
-                    remove(ref(db, `rooms/${roomId}/customers/${k}`));
-                    runTransaction(ref(db, `rooms/${roomId}/lostCount`), (c) => (c||0) + 1);
-                } else {
-                    update(ref(db, `rooms/${roomId}/customers/${k}`), { patience: p });
-                }
-            });
-        }
+    // --- ZOMBIES E IA (HOST ONLY) ---
+    function spawnInitialZombies() {
+        for(let i=0; i<30; i++) spawnZombie();
+    }
 
-        // --- CONTROLES ---
-        const joyZone = document.getElementById('joystick-zone');
-        joyZone.ontouchstart = (e) => { e.preventDefault(); joystick.active = true; };
-        window.ontouchmove = (e) => {
-            if(!joystick.active) return;
-            const t = e.touches[0];
-            const rect = joyZone.getBoundingClientRect();
-            const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
-            let dx = t.clientX - cx, dy = t.clientY - cy;
-            const dist = Math.hypot(dx, dy), max = rect.width/2;
-            if(dist > max) { dx *= max/dist; dy *= max/dist; }
-            joystick.dx = dx/max; joystick.dy = dy/max;
-            document.getElementById('joystick-nub').style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-        };
-        window.ontouchend = () => { joystick.active = false; joystick.dx = 0; joystick.dy = 0; document.getElementById('joystick-nub').style.transform = `translate(-50%, -50%)`; };
-
-        document.getElementById('action-btn').ontouchstart = (e) => { e.preventDefault(); actionHeld = true; };
-        document.getElementById('action-btn').ontouchend = () => { actionHeld = false; cookTimer = 0; sfx.cook.pause(); };
+    function spawnZombie() {
+        const zId = "Z_" + Math.random().toString(36).substr(2, 6);
+        const typeIdx = Math.floor(Math.random() * ZOMBIE_TYPES.length);
+        const x = Math.random() * 3000;
+        const y = Math.random() * 3000;
         
-        document.getElementById('boost-btn').onclick = (e) => {
-            if(isBoosting) return;
-            isBoosting = true; sfx.nitro.play();
-            e.target.classList.add('disabled');
-            setTimeout(() => { isBoosting = false; setTimeout(() => e.target.classList.remove('disabled'), 5000); }, 3000);
-        };
+        set(ref(db, `rooms/${roomID}/zombies/${zId}`), {
+            x, y, type: ZOMBIE_TYPES[typeIdx], hp: (typeIdx + 1) * 2
+        });
+    }
 
-        // --- RENDERIZAR ---
-        function resize() {
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            const pad = canvas.width / (DISHES.length+2);
-            layout.stations = DISHES.map((d, i) => ({ x: pad*(i+1), y: 80, dish: d, size: 50 }));
-            layout.tables = [0,1,2,3].map(i => ({ id: i, x: (i%2==0 ? canvas.width*0.25 : canvas.width*0.75), y: 300 + Math.floor(i/2)*150, size: 60 }));
-            layout.trash = { x: canvas.width - 50, y: 80, size: 50 };
-        }
-        window.onresize = resize;
-
-        function gameLoop() {
-            ctx.clearRect(0,0, canvas.width, canvas.height);
-            
-            // Fundo
-            ctx.fillStyle = "#3d3d3d"; ctx.fillRect(0,0, canvas.width, 150);
-            ctx.fillStyle = "#7f8c8d"; ctx.fillRect(0, 150, canvas.width, canvas.height);
-
-            // Estações
-            layout.stations.forEach(s => {
-                ctx.fillStyle = "#bdc3c7"; ctx.fillRect(s.x-25, s.y-25, 50, 50);
-                ctx.font = "30px Arial"; ctx.textAlign="center"; ctx.fillText(s.dish.icon, s.x, s.y+10);
-            });
-
-            // Lixeira
-            ctx.fillStyle = "#c0392b"; ctx.fillRect(layout.trash.x-25, layout.trash.y-25, 50, 50);
-            ctx.font = "30px Arial"; ctx.fillText("🗑️", layout.trash.x, layout.trash.y+10);
-
-            // Mesas
-            layout.tables.forEach(t => {
-                ctx.fillStyle = "#e67e22"; ctx.beginPath(); ctx.arc(t.x, t.y, t.size/2, 0, Math.PI*2); ctx.fill();
-                const cust = Object.values(customers).find(c => c.tableId === t.id);
-                if(cust) {
-                    ctx.font = "40px Arial"; ctx.textAlign="center";
-                    ctx.fillText("🐧", t.x, t.y - 10);
-                    ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(t.x+30, t.y-30, 20, 0, Math.PI*2); ctx.fill();
-                    ctx.font = "20px Arial";
-                    const dish = DISHES.find(d => d.id === cust.wanted);
-                    if(dish) ctx.fillText(dish.icon, t.x+30, t.y-25);
-                    ctx.fillStyle = "red"; ctx.fillRect(t.x-25, t.y+35, 50, 5);
-                    ctx.fillStyle = "#2ecc71"; ctx.fillRect(t.x-25, t.y+35, 50 * (cust.patience/100), 5);
-                }
-            });
-
-            // Jogadores
-            const me = players[myId];
-            if(me && lostCount < 5) {
-                if(joystick.active) {
-                    const spd = isBoosting ? 10 : 5;
-                    me.x += joystick.dx * spd; me.y += joystick.dy * spd;
-                    update(ref(db, `rooms/${roomId}/players/${myId}`), { x: me.x, y: me.y });
-                }
-
-                if(actionHeld) {
-                    const distTrash = Math.hypot(me.x - layout.trash.x, me.y - layout.trash.y);
-                    if(distTrash < 60 && me.holding) {
-                        update(ref(db, `rooms/${roomId}/players/${myId}`), { holding: null });
-                        sfx.fail.play(); actionHeld = false;
-                    }
-
-                    const station = layout.stations.find(s => Math.hypot(me.x-s.x, me.y-s.y) < 50);
-                    if(station && !me.holding) {
-                        if(sfx.cook.paused) sfx.cook.play();
-                        currentStation = station;
-                        cookTimer += (isBoosting? 35 : 17);
-                        if(cookTimer >= station.dish.time) {
-                            update(ref(db, `rooms/${roomId}/players/${myId}`), { holding: station.dish.id });
-                            actionHeld = false; sfx.cook.pause(); sfx.success.play();
-                        }
-                    }
-
-                    const table = layout.tables.find(t => Math.hypot(me.x-t.x, me.y-t.y) < 60);
-                    if(table && me.holding) {
-                        const cKey = Object.keys(customers).find(k => customers[k].tableId === table.id);
-                        if(cKey && customers[cKey].wanted === me.holding) {
-                            remove(ref(db, `rooms/${roomId}/customers/${cKey}`));
-                            update(ref(db, `rooms/${roomId}/players/${myId}`), { holding: null });
-                            runTransaction(ref(db, `rooms/${roomId}/score`), s => (s||0)+100);
-                            sfx.success.play(); actionHeld = false;
-                        }
-                    }
-                }
-            }
+    function hostLogic() {
+        // Mover zumbis em direção ao player mais próximo
+        Object.keys(zombies).forEach(zId => {
+            let target = null;
+            let minDist = 1000;
 
             Object.values(players).forEach(p => {
-                ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.beginPath(); ctx.ellipse(p.x, p.y+15, 15, 8, 0, 0, Math.PI*2); ctx.fill();
-                ctx.font = "40px Arial"; ctx.textAlign = "center"; ctx.fillText("🐧", p.x, p.y);
-                ctx.fillStyle = "white"; ctx.font = "12px Arial"; ctx.fillText(p.name, p.x, p.y-35);
-                if(p.holding) {
-                    const d = DISHES.find(x => x.id === p.holding);
-                    if(d) ctx.fillText(d.icon, p.x, p.y-50);
-                }
-                if(p.name === me?.name && actionHeld && currentStation) {
-                    ctx.fillStyle = "gold"; ctx.fillRect(p.x-20, p.y-20, 40 * (cookTimer/currentStation.dish.time), 5);
+                const d = Math.hypot(p.x - zombies[zId].x, p.y - zombies[zId].y);
+                if(d < minDist) {
+                    minDist = d;
+                    target = p;
                 }
             });
 
-            requestAnimationFrame(gameLoop);
+            if(target) {
+                const angle = Math.atan2(target.y - zombies[zId].y, target.x - zombies[zId].x);
+                const nx = zombies[zId].x + Math.cos(angle) * 15;
+                const ny = zombies[zId].y + Math.sin(angle) * 15;
+                update(ref(db, `rooms/${roomID}/zombies/${zId}`), { x: nx, y: ny });
+            }
+        });
+
+        // Spawn de cura aleatória
+        if(Math.random() > 0.8) {
+            const iId = "IT_" + Date.now();
+            set(ref(db, `rooms/${roomID}/items/${iId}`), {
+                x: Math.random() * 2800 + 100, y: Math.random() * 2800 + 100, type: "💊"
+            });
         }
-    </script>
+    }
+
+    function hitZombie(zId) {
+        const zRef = ref(db, `rooms/${roomID}/zombies/${zId}`);
+        get(zRef).then(snap => {
+            if(!snap.exists()) return;
+            let z = snap.val();
+            z.hp -= WEAPONS[myData.weaponIdx].d;
+            
+            if(z.hp <= 0) {
+                remove(zRef);
+                myData.kills++;
+                updateProgress();
+                if(isHost) spawnZombie(); // Repor zumbi
+            } else {
+                update(zRef, { hp: z.hp });
+            }
+        });
+    }
+
+    function updateProgress() {
+        const nextLevel = (myData.weaponIdx + 1) * 5;
+        document.getElementById('kill-display').innerText = `Kills: ${myData.kills}`;
+        document.getElementById('xp-bar-fill').style.width = (myData.kills / 100 * 100) + "%";
+
+        if(myData.kills >= nextLevel && myData.weaponIdx < 19) {
+            myData.weaponIdx++;
+            document.getElementById('gun-display').innerText = WEAPONS[myData.weaponIdx].n + " Nível " + (myData.weaponIdx + 1);
+        }
+    }
+
+    // --- RENDERIZAÇÃO ---
+    function renderPlayers() {
+        const layer = document.getElementById('entities-layer');
+        Object.keys(players).forEach(id => {
+            if(id === myId) {
+                updateHUD();
+                return;
+            }
+            let pEl = document.getElementById(id);
+            if(!pEl) {
+                pEl = document.createElement('div');
+                pEl.id = id;
+                pEl.className = 'entity';
+                pEl.innerHTML = `<div class="player-label">${players[id].nick}</div>👤`;
+                layer.appendChild(pEl);
+            }
+            pEl.style.left = players[id].x + 'px';
+            pEl.style.top = players[id].y + 'px';
+        });
+        
+        // Remover desconectados
+        document.querySelectorAll('.entity').forEach(el => {
+            if(el.id.startsWith('P_') && el.id !== myId && !players[el.id]) el.remove();
+        });
+    }
+
+    function renderZombies() {
+        const layer = document.getElementById('entities-layer');
+        Object.keys(zombies).forEach(zId => {
+            let zEl = document.getElementById(zId);
+            if(!zEl) {
+                zEl = document.createElement('div');
+                zEl.id = zId;
+                zEl.className = 'entity';
+                zEl.innerText = zombies[zId].type;
+                layer.appendChild(zEl);
+            }
+            zEl.style.left = zombies[zId].x + 'px';
+            zEl.style.top = zombies[zId].y + 'px';
+        });
+
+        document.querySelectorAll('.entity').forEach(el => {
+            if(el.id.startsWith('Z_') && !zombies[el.id]) el.remove();
+        });
+    }
+
+    function renderItems() {
+        const layer = document.getElementById('entities-layer');
+        Object.keys(items).forEach(iId => {
+            let iEl = document.getElementById(iId);
+            if(!iEl) {
+                iEl = document.createElement('div');
+                iEl.id = iId;
+                iEl.className = 'entity';
+                iEl.innerText = items[iId].type;
+                layer.appendChild(iEl);
+            }
+            iEl.style.left = items[iId].x + 'px';
+            iEl.style.top = items[iId].y + 'px';
+            
+            // Colisão com cura
+            const d = Math.hypot(myData.x - items[iId].x, myData.y - items[iId].y);
+            if(d < 40 && myData.hp < 5) {
+                myData.hp++;
+                remove(ref(db, `rooms/${roomID}/items/${iId}`));
+            }
+        });
+    }
+
+    function updateHUD() {
+        document.getElementById('hp-display').innerText = "❤️".repeat(myData.hp);
+    }
+
+    function checkCollisions() {
+        // Colisão Jogador vs Zumbi
+        Object.values(zombies).forEach(z => {
+            const d = Math.hypot(myData.x - z.x, myData.y - z.y);
+            if(d < 40) {
+                // Knockback simples e dano
+                const angle = Math.atan2(myData.y - z.y, myData.x - z.x);
+                myData.x += Math.cos(angle) * 50;
+                myData.y += Math.sin(angle) * 50;
+                myData.hp--;
+                if(myData.hp <= 0) location.reload(); // Game Over simples
+            }
+        });
+    }
+
+    // --- CONTROLES E CHAT ---
+    const chatInput = document.getElementById('chat-input');
+    chatInput.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter') {
+            const text = chatInput.value;
+            if(text.startsWith('/Cor ')) {
+                myData.color = text.split(' ')[1];
+            } else {
+                push(ref(db, `rooms/${roomID}/chat`), {
+                    sender: myData.nick,
+                    msg: text,
+                    color: myData.color
+                });
+            }
+            chatInput.value = "";
+            chatInput.blur();
+        }
+    });
+
+    function updateChatUI(data) {
+        if(!data) return;
+        const log = document.getElementById('chat-log');
+        log.innerHTML = "";
+        Object.values(data).reverse().forEach(m => {
+            const div = document.createElement('div');
+            div.style.color = m.color;
+            div.innerHTML = `<b>${m.sender}:</b> ${m.msg}`;
+            log.appendChild(div);
+        });
+    }
+
+    function setupJoy(id, stickId, callback) {
+        const container = document.getElementById(id);
+        const stick = document.getElementById(stickId);
+        let active = false;
+
+        const handleMove = (e) => {
+            if(!active) return;
+            const touch = e.touches ? e.touches[0] : e;
+            const rect = container.getBoundingClientRect();
+            const cx = rect.left + rect.width/2;
+            const cy = rect.top + rect.height/2;
+            let dx = touch.clientX - cx;
+            let dy = touch.clientY - cy;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const max = 50;
+            if(dist > max) { dx *= max/dist; dy *= max/dist; }
+            stick.style.transform = `translate(${dx}px, ${dy}px)`;
+            callback(dx/max, dy/max);
+        };
+
+        container.addEventListener('touchstart', () => active = true);
+        window.addEventListener('touchmove', handleMove);
+        window.addEventListener('touchend', () => {
+            active = false;
+            stick.style.transform = `translate(0,0)`;
+            callback(0,0);
+        });
+    }
+
+    setupJoy('move-joy', 'move-stick', (x, y) => {
+        myData.vx = x; myData.vy = y;
+    });
+
+    setupJoy('shoot-joy', 'shoot-stick', (x, y) => {
+        if(x !== 0 || y !== 0) shoot(x, y);
+    });
+
+    window.showPrivateMenu = () => {
+        document.getElementById('menu-screen').style.display = 'none';
+        document.getElementById('private-menu').style.display = 'flex';
+    };
+
+    window.backToMenu = () => {
+        document.getElementById('private-menu').style.display = 'none';
+        document.getElementById('menu-screen').style.display = 'flex';
+    };
+
+</script>
 </body>
     </html>
