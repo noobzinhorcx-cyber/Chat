@@ -3,170 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plugin Engine Pro - Persistente</title>
+    <title>Database Monitor & Wiper</title>
     <style>
-        :root { --primary: #4CAF50; --bg: #1a1a1a; --card: #2d2d2d; }
-        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        :root { --danger: #ff4444; --success: #00c851; --bg: #121212; --card: #1e1e1e; }
+        body { background: var(--bg); color: #e0e0e0; font-family: 'Segoe UI', sans-serif; margin: 20px; }
         
-        canvas { display: block; cursor: crosshair; }
-
-        /* Interface Principal */
-        #ui-container {
-            position: absolute; top: 15px; left: 15px; z-index: 10;
-            display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        
+        .section { 
+            background: var(--card); border-radius: 15px; padding: 20px; 
+            border: 1px solid #333; height: 400px; display: flex; flex-direction: column;
+        }
+        
+        h2 { margin-top: 0; font-size: 1.2rem; display: flex; justify-content: space-between; align-items: center; }
+        
+        .list-container { flex: 1; overflow-y: auto; margin-bottom: 15px; border-top: 1px solid #333; padding-top: 10px; }
+        
+        .item { 
+            background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; 
+            margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between; align-items: center;
+            animation: fadeIn 0.3s ease;
         }
 
-        .panel {
-            background: rgba(45, 45, 45, 0.9); backdrop-filter: blur(5px);
-            padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
-            pointer-events: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5s); } to { opacity: 1; transform: translateY(0); } }
 
-        .btn {
-            background: var(--primary); color: white; border: none; padding: 10px 15px;
-            border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;
+        .btn { 
+            border: none; border-radius: 6px; cursor: pointer; font-weight: bold; 
+            transition: 0.2s; padding: 5px 10px; font-size: 12px;
         }
-        .btn:active { transform: scale(0.95); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-wipe { background: var(--danger); width: 100%; padding: 15px; font-size: 16px; margin-bottom: 20px; }
+        .btn-mini { padding: 3px 8px; opacity: 0.7; }
+        .btn-mini:hover { opacity: 1; }
 
-        /* Lista de Plugins */
-        #plugin-list { margin-top: 10px; max-height: 200px; overflow-y: auto; }
-        .plugin-item {
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(0,0,0,0.3); padding: 8px; border-radius: 5px; margin-bottom: 5px;
-            font-size: 13px; border-left: 3px solid var(--primary);
-        }
-        .del-btn { background: #ff4444; border: none; color: white; border-radius: 4px; padding: 2px 8px; cursor: pointer; }
-
-        #stats { position: absolute; bottom: 15px; left: 15px; font-size: 12px; color: #888; }
+        .tag { font-family: monospace; color: var(--success); }
+        .empty { color: #666; font-style: italic; text-align: center; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <div id="ui-container">
-        <div class="panel">
-            <b style="display:block; margin-bottom:10px;">🔌 MOTOR DE PLUGINS</b>
-            <button class="btn" onclick="document.getElementById('fileInput').click()">+ NOVO PLUGIN</button>
-            <input type="file" id="fileInput" style="display:none" accept=".js">
-            
-            <div id="plugin-list">
-                </div>
+    <h1 style="text-align: center;">🛡️ Database Command Center</h1>
+    
+    <button class="btn btn-danger btn-wipe" onclick="wipeAll()">⚠️ APAGAR TODO O BANCO DE DADOS (RESET TOTAL)</button>
+
+    <div class="grid">
+        <div class="section">
+            <h2>👥 Jogadores Online <button class="btn btn-danger btn-mini" onclick="clearPath('online')">Limpar</button></h2>
+            <div id="list-online" class="list-container"></div>
+        </div>
+
+        <div class="section">
+            <h2>💬 Histórico de Chat <button class="btn btn-danger btn-mini" onclick="clearPath('chat')">Limpar</button></h2>
+            <div id="list-chat" class="list-container"></div>
+        </div>
+
+        <div class="section">
+            <h2>🏠 Estado da Casa <button class="btn btn-danger btn-mini" onclick="clearPath('house')">Limpar</button></h2>
+            <div id="list-house" class="list-container"></div>
         </div>
     </div>
 
-    <div id="stats">Engine v2.0 | Plugins salvos no navegador</div>
-    <canvas id="gameCanvas"></canvas>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        const firebaseConfig = {
+            apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q",
+            databaseURL: "https://chatrucoy-default-rtdb.firebaseio.com",
+            projectId: "chatrucoy",
+        };
 
-        // --- CORE DA ENGINE ---
-        const Game = {
-            player: { x: window.innerWidth/2, y: window.innerHeight/2, size: 40, color: '#4facfe' },
-            plugins: [], // Plugins ativos em memória
-            
-            // Registra e executa o plugin
-            register: function(config) {
-                this.plugins.push(config);
-                if(config.onInit) config.onInit(this);
-                renderPluginList();
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Função para renderizar as listas
+        function setupMonitor(path, elementId) {
+            const listEl = document.getElementById(elementId);
+            onValue(ref(db, path), (snapshot) => {
+                listEl.innerHTML = "";
+                const data = snapshot.val();
+                
+                if (!data) {
+                    listEl.innerHTML = '<div class="empty">Nenhum dado encontrado</div>';
+                    return;
+                }
+
+                Object.keys(data).forEach(key => {
+                    const item = data[key];
+                    const div = document.createElement('div');
+                    div.className = 'item';
+                    
+                    // Exibição amigável dependendo do tipo de dado
+                    let displayContent = `<span class="tag">${key}</span>`;
+                    if (path === 'chat') displayContent = `<span><b>${item.nick}:</b> ${item.text}</span>`;
+                    if (path === 'online') displayContent = `<span>👤 ${key} (x: ${item.x}, y: ${item.y})</span>`;
+                    
+                    div.innerHTML = `
+                        ${displayContent}
+                        <button class="btn btn-danger btn-mini" onclick="deleteItem('${path}/${key}')">X</button>
+                    `;
+                    listEl.appendChild(div);
+                });
+            });
+        }
+
+        // Funções de Exclusão
+        window.deleteItem = (fullPath) => {
+            if(confirm(`Excluir ${fullPath}?`)) remove(ref(db, fullPath));
+        };
+
+        window.clearPath = (path) => {
+            if(confirm(`Limpar toda a pasta "${path}"?`)) remove(ref(db, path));
+        };
+
+        window.wipeAll = () => {
+            if(confirm("ALERTA: Isso resetará o jogo inteiro. Confirmar?")) {
+                remove(ref(db, '/'));
+                alert("O banco de dados foi completamente esvaziado.");
             }
         };
 
-        // --- GERENCIAMENTO DE MEMÓRIA (STORAGE) ---
-        
-        // Carrega do LocalStorage ao iniciar
-        function loadStoredPlugins() {
-            const vault = JSON.parse(localStorage.getItem('game_vault') || '[]');
-            vault.forEach(pluginData => {
-                injectScript(pluginData.code);
-            });
-        }
-
-        // Salva novo plugin no LocalStorage
-        function savePlugin(name, code) {
-            const vault = JSON.parse(localStorage.getItem('game_vault') || '[]');
-            vault.push({ name, code, id: Date.now() });
-            localStorage.setItem('game_vault', JSON.stringify(vault));
-        }
-
-        // Deleta um plugin e recarrega a página
-        window.deletePlugin = function(index) {
-            const vault = JSON.parse(localStorage.getItem('game_vault') || '[]');
-            vault.splice(index, 1);
-            localStorage.setItem('game_vault', JSON.stringify(vault));
-            location.reload(); // Recarrega para limpar os scripts da memória
-        }
-
-        function injectScript(code) {
-            try {
-                const script = document.createElement('script');
-                script.text = code;
-                document.body.appendChild(script);
-            } catch(e) { console.error("Erro no script:", e); }
-        }
-
-        // --- INTERFACE ---
-        function renderPluginList() {
-            const list = document.getElementById('plugin-list');
-            const vault = JSON.parse(localStorage.getItem('game_vault') || '[]');
-            
-            list.innerHTML = vault.length === 0 ? '<small>Nenhum plugin instalado</small>' : '';
-            
-            vault.forEach((p, i) => {
-                const div = document.createElement('div');
-                div.className = 'plugin-item';
-                div.innerHTML = `
-                    <span>${p.name}</span>
-                    <button class="del-btn" onclick="deletePlugin(${i})">X</button>
-                `;
-                list.appendChild(div);
-            });
-        }
-
-        // Listener de Upload
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const code = event.target.result;
-                const name = file.name.replace('.js', '');
-                
-                savePlugin(name, code);
-                injectScript(code);
-                alert("Plugin '" + name + "' integrado com sucesso!");
-            };
-            reader.readAsText(file);
-        });
-
-        // --- LOOP DE RENDERIZAÇÃO ---
-        function loop() {
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Plugins rodando no Update
-            Game.plugins.forEach(p => { if(p.onUpdate) p.onUpdate(Game); });
-
-            // Desenho do Jogador
-            ctx.fillStyle = Game.player.color;
-            ctx.shadowBlur = 15; ctx.shadowColor = Game.player.color;
-            ctx.fillRect(Game.player.x - Game.player.size/2, Game.player.y - Game.player.size/2, Game.player.size, Game.player.size);
-            ctx.shadowBlur = 0;
-
-            // Plugins rodando no Draw
-            Game.plugins.forEach(p => { if(p.onDraw) p.onDraw(ctx, Game); });
-
-            requestAnimationFrame(loop);
-        }
-
-        // Inicialização
-        loadStoredPlugins();
-        loop();
+        // Iniciar Monitores
+        setupMonitor('online', 'list-online');
+        setupMonitor('chat', 'list-chat');
+        setupMonitor('house', 'list-house');
 
     </script>
 </body>
-        </html>
+</html>
