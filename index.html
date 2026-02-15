@@ -2,131 +2,82 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Database Monitor & Wiper</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SMW Online Coop - Admin Emmanuel</title>
+    <script src="https://cdn.jsdelivr.net/npm/emulatorjs@latest/dist/emulator.min.js"></script>
     <style>
-        :root { --danger: #ff4444; --success: #00c851; --bg: #121212; --card: #1e1e1e; }
-        body { background: var(--bg); color: #e0e0e0; font-family: 'Segoe UI', sans-serif; margin: 20px; }
-        
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        
-        .section { 
-            background: var(--card); border-radius: 15px; padding: 20px; 
-            border: 1px solid #333; height: 400px; display: flex; flex-direction: column;
-        }
-        
-        h2 { margin-top: 0; font-size: 1.2rem; display: flex; justify-content: space-between; align-items: center; }
-        
-        .list-container { flex: 1; overflow-y: auto; margin-bottom: 15px; border-top: 1px solid #333; padding-top: 10px; }
-        
-        .item { 
-            background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; 
-            margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between; align-items: center;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5s); } to { opacity: 1; transform: translateY(0); } }
-
-        .btn { 
-            border: none; border-radius: 6px; cursor: pointer; font-weight: bold; 
-            transition: 0.2s; padding: 5px 10px; font-size: 12px;
-        }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-wipe { background: var(--danger); width: 100%; padding: 15px; font-size: 16px; margin-bottom: 20px; }
-        .btn-mini { padding: 3px 8px; opacity: 0.7; }
-        .btn-mini:hover { opacity: 1; }
-
-        .tag { font-family: monospace; color: var(--success); }
-        .empty { color: #666; font-style: italic; text-align: center; margin-top: 20px; }
+        body { margin: 0; background: #000; color: white; display: flex; flex-direction: column; align-items: center; }
+        #game-container { width: 100vw; height: 70vh; background: #222; }
+        .controls-mobile { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 20px; }
+        .btn { width: 60px; height: 60px; background: #444; border-radius: 10px; display: flex; align-items: center; justify-content: center; user-select: none; }
+        .active { background: #ff4444 !important; }
     </style>
 </head>
 <body>
 
-    <h1 style="text-align: center;">🛡️ Database Command Center</h1>
-    
-    <button class="btn btn-danger btn-wipe" onclick="wipeAll()">⚠️ APAGAR TODO O BANCO DE DADOS (RESET TOTAL)</button>
+    <div id="game-container">
+        <div id="game"></div>
+    </div>
 
-    <div class="grid">
-        <div class="section">
-            <h2>👥 Jogadores Online <button class="btn btn-danger btn-mini" onclick="clearPath('online')">Limpar</button></h2>
-            <div id="list-online" class="list-container"></div>
-        </div>
+    <div id="status">Conectando ao Firebase...</div>
 
-        <div class="section">
-            <h2>💬 Histórico de Chat <button class="btn btn-danger btn-mini" onclick="clearPath('chat')">Limpar</button></h2>
-            <div id="list-chat" class="list-container"></div>
-        </div>
-
-        <div class="section">
-            <h2>🏠 Estado da Casa <button class="btn btn-danger btn-mini" onclick="clearPath('house')">Limpar</button></h2>
-            <div id="list-house" class="list-container"></div>
-        </div>
+    <div class="controls-mobile">
+        <div class="btn" id="left">◀</div>
+        <div class="btn" id="up">▲</div>
+        <div class="btn" id="right">▶</div>
+        <div class="btn" id="y">Y (Correr)</div>
+        <div class="btn" id="down">▼</div>
+        <div class="btn" id="b">B (Pular)</div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+        import { getDatabase, ref, update, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
+        // CONFIGURAÇÃO FIREBASE (Emmanuel 2025)
         const firebaseConfig = {
             apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q",
             databaseURL: "https://chatrucoy-default-rtdb.firebaseio.com",
             projectId: "chatrucoy",
         };
-
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Função para renderizar as listas
-        function setupMonitor(path, elementId) {
-            const listEl = document.getElementById(elementId);
-            onValue(ref(db, path), (snapshot) => {
-                listEl.innerHTML = "";
-                const data = snapshot.val();
-                
-                if (!data) {
-                    listEl.innerHTML = '<div class="empty">Nenhum dado encontrado</div>';
-                    return;
-                }
+        // Identificação do Jogador (P1 ou P2)
+        const role = prompt("Você é o Player 1 ou 2?") === "1" ? "p1" : "p2";
+        const otherPlayer = role === "p1" ? "p2" : "p1";
 
-                Object.keys(data).forEach(key => {
-                    const item = data[key];
-                    const div = document.createElement('div');
-                    div.className = 'item';
-                    
-                    // Exibição amigável dependendo do tipo de dado
-                    let displayContent = `<span class="tag">${key}</span>`;
-                    if (path === 'chat') displayContent = `<span><b>${item.nick}:</b> ${item.text}</span>`;
-                    if (path === 'online') displayContent = `<span>👤 ${key} (x: ${item.x}, y: ${item.y})</span>`;
-                    
-                    div.innerHTML = `
-                        ${displayContent}
-                        <button class="btn btn-danger btn-mini" onclick="deleteItem('${path}/${key}')">X</button>
-                    `;
-                    listEl.appendChild(div);
-                });
-            });
+        // Inicializar Emulador (EmulatorJS)
+        const Emu = new EmulatorJS("game", {
+            system: "snes",
+            rom: "URL_DA_SUA_ROM_AQUI.smw", // Você precisa hospedar a ROM
+            onReady: () => { console.log("Emulador Pronto!"); }
+        });
+
+        // --- SINCRONIZAÇÃO DE CONTROLES ---
+        const controlsRef = ref(db, 'smw_netplay/' + role);
+        const otherRef = ref(db, 'smw_netplay/' + otherPlayer);
+
+        function sendInput(button, state) {
+            update(controlsRef, { [button]: state });
         }
 
-        // Funções de Exclusão
-        window.deleteItem = (fullPath) => {
-            if(confirm(`Excluir ${fullPath}?`)) remove(ref(db, fullPath));
-        };
-
-        window.clearPath = (path) => {
-            if(confirm(`Limpar toda a pasta "${path}"?`)) remove(ref(db, path));
-        };
-
-        window.wipeAll = () => {
-            if(confirm("ALERTA: Isso resetará o jogo inteiro. Confirmar?")) {
-                remove(ref(db, '/'));
-                alert("O banco de dados foi completamente esvaziado.");
+        // Ler controles do outro jogador e injetar no emulador
+        onValue(otherRef, (snap) => {
+            const inputs = snap.val();
+            if(inputs) {
+                // Aqui o emulador "aperta" o botão para o P2
+                // Exemplo: Emu.pressButton(otherPlayer, inputs);
             }
-        };
+        });
 
-        // Iniciar Monitores
-        setupMonitor('online', 'list-online');
-        setupMonitor('chat', 'list-chat');
-        setupMonitor('house', 'list-house');
+        // Eventos de toque para o celular
+        const buttons = ['left', 'right', 'up', 'down', 'b', 'y'];
+        buttons.forEach(id => {
+            const el = document.getElementById(id);
+            el.ontouchstart = () => { sendInput(id, true); el.classList.add('active'); };
+            el.ontouchend = () => { sendInput(id, false); el.classList.remove('active'); };
+        });
 
     </script>
 </body>
