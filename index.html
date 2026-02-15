@@ -1,47 +1,172 @@
-// --- SISTEMA DE UPLOAD COM PERSISTÊNCIA ---
-const fileInput = document.getElementById('fileInput');
-
-// 1. Função que executa o código do plugin
-function executePlugin(code) {
-    try {
-        const script = document.createElement('script');
-        script.text = code;
-        document.body.appendChild(script);
-    } catch (err) {
-        console.error("Erro ao executar plugin salvo:", err);
-    }
-}
-
-// 2. Carregar plugins salvos assim que a página abrir
-window.addEventListener('load', () => {
-    const savedPlugins = JSON.parse(localStorage.getItem('myGamePlugins') || '[]');
-    savedPlugins.forEach(pluginCode => {
-        executePlugin(pluginCode);
-    });
-    console.log(`${savedPlugins.length} plugins restaurados da memória.`);
-});
-
-// 3. Salvar novo plugin ao fazer upload
-fileInput.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const pluginCode = event.target.result;
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plugin Engine Pro - Persistente</title>
+    <style>
+        :root { --primary: #4CAF50; --bg: #1a1a1a; --card: #2d2d2d; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         
-        // Executa agora
-        executePlugin(pluginCode);
+        canvas { display: block; cursor: crosshair; }
 
-        // Salva para sempre no LocalStorage
-        const savedPlugins = JSON.parse(localStorage.getItem('myGamePlugins') || '[]');
-        savedPlugins.push(pluginCode);
-        localStorage.setItem('myGamePlugins', JSON.stringify(savedPlugins));
+        /* Interface Principal */
+        #ui-container {
+            position: absolute; top: 15px; left: 15px; z-index: 10;
+            display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+        }
+
+        .panel {
+            background: rgba(45, 45, 45, 0.9); backdrop-filter: blur(5px);
+            padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+            pointer-events: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .btn {
+            background: var(--primary); color: white; border: none; padding: 10px 15px;
+            border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .btn:active { transform: scale(0.95); }
+
+        /* Lista de Plugins */
+        #plugin-list { margin-top: 10px; max-height: 200px; overflow-y: auto; }
+        .plugin-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.3); padding: 8px; border-radius: 5px; margin-bottom: 5px;
+            font-size: 13px; border-left: 3px solid var(--primary);
+        }
+        .del-btn { background: #ff4444; border: none; color: white; border-radius: 4px; padding: 2px 8px; cursor: pointer; }
+
+        #stats { position: absolute; bottom: 15px; left: 15px; font-size: 12px; color: #888; }
+    </style>
+</head>
+<body>
+
+    <div id="ui-container">
+        <div class="panel">
+            <b style="display:block; margin-bottom:10px;">🔌 MOTOR DE PLUGINS</b>
+            <button class="btn" onclick="document.getElementById('fileInput').click()">+ NOVO PLUGIN</button>
+            <input type="file" id="fileInput" style="display:none" accept=".js">
+            
+            <div id="plugin-list">
+                </div>
+        </div>
+    </div>
+
+    <div id="stats">Engine v2.0 | Plugins salvos no navegador</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // --- CORE DA ENGINE ---
+        const Game = {
+            player: { x: window.innerWidth/2, y: window.innerHeight/2, size: 40, color: '#4facfe' },
+            plugins: [], // Plugins ativos em memória
+            
+            // Registra e executa o plugin
+            register: function(config) {
+                this.plugins.push(config);
+                if(config.onInit) config.onInit(this);
+                renderPluginList();
+            }
+        };
+
+        // --- GERENCIAMENTO DE MEMÓRIA (STORAGE) ---
         
-        alert("Plugin integrado e salvo com sucesso!");
-    };
-    reader.readAsText(file);
-});
+        // Carrega do LocalStorage ao iniciar
+        function loadStoredPlugins() {
+            const vault = JSON.parse(localStorage.getItem('game_vault') || '[]');
+            vault.forEach(pluginData => {
+                injectScript(pluginData.code);
+            });
+        }
 
-// FUNÇÃO EXTRA: Se quiser deletar tudo e começar do zero, digite no console: 
-// localStorage.clear(); location.reload();
+        // Salva novo plugin no LocalStorage
+        function savePlugin(name, code) {
+            const vault = JSON.parse(localStorage.getItem('game_vault') || '[]');
+            vault.push({ name, code, id: Date.now() });
+            localStorage.setItem('game_vault', JSON.stringify(vault));
+        }
+
+        // Deleta um plugin e recarrega a página
+        window.deletePlugin = function(index) {
+            const vault = JSON.parse(localStorage.getItem('game_vault') || '[]');
+            vault.splice(index, 1);
+            localStorage.setItem('game_vault', JSON.stringify(vault));
+            location.reload(); // Recarrega para limpar os scripts da memória
+        }
+
+        function injectScript(code) {
+            try {
+                const script = document.createElement('script');
+                script.text = code;
+                document.body.appendChild(script);
+            } catch(e) { console.error("Erro no script:", e); }
+        }
+
+        // --- INTERFACE ---
+        function renderPluginList() {
+            const list = document.getElementById('plugin-list');
+            const vault = JSON.parse(localStorage.getItem('game_vault') || '[]');
+            
+            list.innerHTML = vault.length === 0 ? '<small>Nenhum plugin instalado</small>' : '';
+            
+            vault.forEach((p, i) => {
+                const div = document.createElement('div');
+                div.className = 'plugin-item';
+                div.innerHTML = `
+                    <span>${p.name}</span>
+                    <button class="del-btn" onclick="deletePlugin(${i})">X</button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // Listener de Upload
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const code = event.target.result;
+                const name = file.name.replace('.js', '');
+                
+                savePlugin(name, code);
+                injectScript(code);
+                alert("Plugin '" + name + "' integrado com sucesso!");
+            };
+            reader.readAsText(file);
+        });
+
+        // --- LOOP DE RENDERIZAÇÃO ---
+        function loop() {
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Plugins rodando no Update
+            Game.plugins.forEach(p => { if(p.onUpdate) p.onUpdate(Game); });
+
+            // Desenho do Jogador
+            ctx.fillStyle = Game.player.color;
+            ctx.shadowBlur = 15; ctx.shadowColor = Game.player.color;
+            ctx.fillRect(Game.player.x - Game.player.size/2, Game.player.y - Game.player.size/2, Game.player.size, Game.player.size);
+            ctx.shadowBlur = 0;
+
+            // Plugins rodando no Draw
+            Game.plugins.forEach(p => { if(p.onDraw) p.onDraw(ctx, Game); });
+
+            requestAnimationFrame(loop);
+        }
+
+        // Inicialização
+        loadStoredPlugins();
+        loop();
+
+    </script>
+</body>
+        </html>
