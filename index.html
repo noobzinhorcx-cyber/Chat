@@ -3,102 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Penguin Chef - Hardcore Edition</title>
+    <title>Penguin Chef - Som & NPCs</title>
     <style>
-        :root { --main-red: #ff4757; --main-blue: #2e86de; --gold: #f1c40f; --dark: #1e272e; }
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; user-select: none; }
+        :root { --main-red: #ff4757; --main-blue: #2e86de; --gold: #f1c40f; }
+        body { margin: 0; overflow: hidden; background: #2f3542; font-family: sans-serif; touch-action: none; user-select: none; }
         
         /* MENU */
         #menu { position: absolute; inset: 0; background: linear-gradient(135deg, #1e272e, #485460); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; color: white; text-align: center; }
-        h1 { margin-bottom: 10px; text-shadow: 0 4px 10px rgba(0,0,0,0.5); font-size: 2.5rem; }
-        h1 small { display: block; font-size: 1rem; color: var(--gold); letter-spacing: 2px; margin-top: 5px; }
-        
-        input { padding: 15px; font-size: 18px; border-radius: 12px; border: 2px solid #57606f; margin: 8px; width: 220px; text-align: center; background: #2f3542; color: white; outline: none; transition: 0.3s; text-transform: uppercase; }
-        input:focus { border-color: var(--gold); transform: scale(1.05); }
-        
-        .menu-btn-group { display: flex; gap: 10px; margin-top: 10px; }
-        button { padding: 15px 30px; font-size: 18px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer; color: white; transition: transform 0.1s; box-shadow: 0 4px 0 rgba(0,0,0,0.3); }
+        h1 { font-size: 2.5rem; text-shadow: 0 4px 10px rgba(0,0,0,0.5); margin: 0 0 20px 0; }
+        input { padding: 15px; font-size: 18px; border-radius: 12px; border: none; margin: 8px; width: 220px; text-align: center; text-transform: uppercase; }
+        button { padding: 15px 30px; font-size: 18px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; color: white; margin: 5px; box-shadow: 0 4px 0 rgba(0,0,0,0.3); }
         button:active { transform: translateY(4px); box-shadow: none; }
         #create-btn { background: var(--main-blue); }
         #join-btn { background: var(--main-red); }
 
         /* JOGO */
-        #game-container { position: relative; width: 100vw; height: 100vh; display: none; background: #2f3542; }
+        #game-container { position: relative; width: 100vw; height: 100vh; display: none; }
         canvas { display: block; }
-
-        /* HUD */
-        #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
         
-        .hud-panel { position: absolute; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 20px; color: white; font-weight: bold; border: 2px solid rgba(255,255,255,0.1); backdrop-filter: blur(4px); }
-        
-        #score-panel { top: 15px; left: 15px; font-size: 20px; color: var(--gold); }
-        #lost-panel { top: 15px; right: 15px; font-size: 16px; color: var(--main-red); }
-        
-        /* CÓDIGO DA SALA (NOVO) */
-        #room-display { 
-            position: absolute; top: 15px; left: 50%; transform: translateX(-50%); 
-            background: rgba(46, 134, 222, 0.9); 
-            padding: 10px 25px; border-radius: 10px; 
-            font-size: 24px; font-weight: 900; color: white; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            border: 2px solid white;
-            text-shadow: 1px 1px 0 #000;
-        }
+        #hud { position: absolute; top: 0; width: 100%; pointer-events: none; padding: 10px; box-sizing: border-box; display: flex; justify-content: space-between; font-weight: bold; color: white; text-shadow: 2px 2px 0 #000; font-size: 20px; }
+        #room-code { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 10px; font-size: 16px; }
 
         /* CONTROLES */
-        #controls { position: absolute; bottom: 30px; width: 100%; display: flex; justify-content: space-between; padding: 0 30px; box-sizing: border-box; pointer-events: none; z-index: 20; }
-        #joystick-zone { width: 120px; height: 120px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; position: relative; pointer-events: auto; backdrop-filter: blur(2px); }
-        #joystick-nub { width: 50px; height: 50px; background: linear-gradient(to bottom, #fff, #bdc3c7); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 4px 10px rgba(0,0,0,0.5); pointer-events: none; }
+        #controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 30px; box-sizing: border-box; pointer-events: none; }
+        #joystick-zone { width: 120px; height: 120px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; position: relative; pointer-events: auto; }
+        #joystick-nub { width: 50px; height: 50px; background: white; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
         
         .action-group { display: flex; flex-direction: column; gap: 15px; pointer-events: auto; align-items: flex-end; }
-        .btn { width: 90px; height: 90px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; text-align: center; font-weight: 900; color: white; border: 3px solid rgba(255,255,255,0.3); transition: 0.1s; user-select: none; text-shadow: 1px 1px 2px black; }
-        
-        #action-btn { background: linear-gradient(to bottom, #ff6b6b, #ee5253); box-shadow: 0 6px #b33939; }
-        #action-btn:active { transform: translateY(6px); box-shadow: 0 0 #b33939; }
-        
-        #boost-btn { width: 70px; height: 70px; font-size: 12px; background: linear-gradient(to bottom, #54a0ff, #2e86de); box-shadow: 0 6px #1d5ca3; }
-        #boost-btn:active { transform: translateY(6px); box-shadow: 0 0 #1d5ca3; }
+        .btn { width: 90px; height: 90px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; border: 3px solid rgba(255,255,255,0.3); text-shadow: 1px 1px 2px black; user-select: none; }
+        #action-btn { background: #ff4757; box-shadow: 0 6px #b33939; }
+        #boost-btn { width: 70px; height: 70px; background: #2e86de; box-shadow: 0 6px #1d5ca3; font-size: 12px; }
+        .btn:active { transform: translateY(6px); box-shadow: none; }
         .disabled { filter: grayscale(1); opacity: 0.5; pointer-events: none; }
 
-        /* TELA FINAL */
         #game-over { position: absolute; inset: 0; background: rgba(0,0,0,0.95); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 200; color: white; }
-        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
     <div id="menu">
-        <h1>🐧 PENGUIN CHEF<br><small>HARDCORE KITCHEN</small></h1>
-        <input type="text" id="username" placeholder="Seu Apelido" maxlength="8">
-        <input type="text" id="room-input" placeholder="Código da Sala" maxlength="5">
-        <div class="menu-btn-group">
+        <h1>🐧 PENGUIN CHEF</h1>
+        <input type="text" id="username" placeholder="Seu Nome" maxlength="8">
+        <input type="text" id="room-input" placeholder="CÓD SALA (Ex: ABCD)" maxlength="5">
+        <div>
             <button id="create-btn">CRIAR SALA</button>
             <button id="join-btn">ENTRAR</button>
         </div>
     </div>
 
     <div id="game-over">
-        <div style="font-size: 60px;">💀</div>
-        <h1 style="color: #ff4757; margin: 10px;">COZINHA FECHADA</h1>
-        <p>Muitos clientes insatisfeitos!</p>
-        <button onclick="location.reload()" style="background: white; color: black; margin-top: 20px;">JOGAR DE NOVO</button>
+        <h1>💀 FIM DE JOGO</h1>
+        <p>Clientes perdidos: 5/5</p>
+        <button onclick="location.reload()" style="background: white; color: black;">REINICIAR</button>
     </div>
 
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
-        
         <div id="hud">
-            <div id="room-display">SALA: ----</div>
-            
-            <div id="score-panel" class="hud-panel">💰 $<span id="score">0</span></div>
-            <div id="lost-panel" class="hud-panel">😡 SAÍRAM: <span id="lost-count">0</span>/5</div>
+            <div>💰 <span id="score">0</span></div>
+            <div>😡 <span id="lost-count">0</span>/5</div>
         </div>
-
+        <div id="room-code">SALA: ----</div>
         <div id="controls">
             <div id="joystick-zone"><div id="joystick-nub"></div></div>
             <div class="action-group">
-                <div id="boost-btn" class="btn">⚡ NITRO</div>
-                <div id="action-btn" class="btn">🍳<br>COZINHAR</div>
+                <div id="boost-btn" class="btn">NITRO</div>
+                <div id="action-btn" class="btn">COZINHAR</div>
             </div>
         </div>
     </div>
@@ -107,7 +77,6 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
         import { getDatabase, ref, set, onValue, update, push, remove, onDisconnect, get, runTransaction } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
 
-        // --- CONFIG FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q",
             authDomain: "chatrucoy.firebaseapp.com",
@@ -117,415 +86,257 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- SISTEMA DE SONS (FIXED) ---
-        // Usamos sons curtos e pré-carregados. O .play() é chamado dentro da interação do usuário.
+        // --- SISTEMA DE SONS (CORRIGIDO) ---
         const sfx = {
             bgm: new Audio('https://actions.google.com/sounds/v1/science_fiction/glitchy_digital_opening.ogg'),
             cook: new Audio('https://actions.google.com/sounds/v1/water/liquid_simmering_loop.ogg'),
             success: new Audio('https://actions.google.com/sounds/v1/cartoon/clime_bing_bing.ogg'),
             fail: new Audio('https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg'),
-            nitro: new Audio('https://actions.google.com/sounds/v1/transportation/car_passing_by.ogg'),
-            chop: new Audio('https://actions.google.com/sounds/v1/foley/squeaky_toy_press.ogg')
+            nitro: new Audio('https://actions.google.com/sounds/v1/transportation/car_passing_by.ogg')
         };
-        
         sfx.bgm.loop = true; sfx.bgm.volume = 0.4;
-        sfx.cook.loop = true; sfx.cook.volume = 0.6;
-        sfx.success.volume = 0.5;
+        sfx.cook.loop = true; 
 
-        // Função auxiliar para tocar som sem erro
-        function playSound(sound) {
-            sound.currentTime = 0;
-            sound.play().catch(e => console.log("Audio prevent:", e));
+        // Função para ativar som no clique do usuário (browser policy)
+        function initAudio() {
+            sfx.bgm.play().catch(() => console.log("Erro BGM"));
+            // Toca e pausa rapidinho os outros para "aquecer" o áudio
+            sfx.success.volume = 0; sfx.success.play().then(() => { sfx.success.pause(); sfx.success.volume = 0.5; });
         }
 
-        // --- VARIÁVEIS ---
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        
-        // Emojis para os pratos
         const DISHES = [
             { id: 1, icon: "🍔", time: 2000 }, { id: 2, icon: "🍕", time: 2500 },
             { id: 3, icon: "🍣", time: 1500 }, { id: 4, icon: "🥗", time: 1000 },
-            { id: 5, icon: "🍜", time: 3000 }, { id: 6, icon: "🌮", time: 1800 },
-            { id: 7, icon: "🥩", time: 3500 }, { id: 8, icon: "🍦", time: 500 },
-            { id: 9, icon: "🍰", time: 2200 }, { id: 10, icon: "🍤", time: 1200 }
+            { id: 5, icon: "🍜", time: 3000 }, { id: 6, icon: "🍦", time: 500 }
         ];
 
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
         let myId = 'p' + Math.floor(Math.random()*9999);
         let roomId = null, isHost = false;
-        let players = {}, customers = {};
-        let score = 0, lostCount = 0;
-        
-        // Controles
-        let joystick = { active: false, dx: 0, dy: 0, angle: 0 };
+        let players = {}, customers = {}, score = 0, lostCount = 0;
+        let joystick = { active: false, dx: 0, dy: 0 };
         let actionHeld = false, cookTimer = 0, currentStation = null;
         let layout = { stations: [], tables: [] };
-        let isBoosting = false, boostCooldown = false;
+        let isBoosting = false;
 
-        // --- MENU & START ---
-        document.getElementById('create-btn').onclick = () => start(true);
-        document.getElementById('join-btn').onclick = () => start(false);
+        // --- INICIAR JOGO ---
+        document.getElementById('create-btn').onclick = () => { initAudio(); start(true); };
+        document.getElementById('join-btn').onclick = () => { initAudio(); start(false); };
 
-        async function start(hostStatus) {
-            const name = document.getElementById('username').value.trim() || "Chef " + Math.floor(Math.random()*100);
-            const inputRoom = document.getElementById('room-input').value.trim().toUpperCase();
+        async function start(host) {
+            const name = document.getElementById('username').value || "Chef";
+            const codeInput = document.getElementById('room-input').value.toUpperCase();
             
-            // Tenta destravar áudio no clique inicial
-            sfx.bgm.play().catch(e => console.log("Browser bloqueou autoplay"));
-
-            if(hostStatus) {
-                // Gera código de sala amigável (Letras)
-                const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            if(host) {
+                // Gerar código de 4 letras
                 roomId = "";
-                for(let i=0; i<5; i++) roomId += chars.charAt(Math.floor(Math.random() * chars.length));
-                
-                await set(ref(db, `rooms/${roomId}`), { 
-                    score: 0, lostCount: 0, difficulty: 1, 
-                    hostId: myId, startTime: Date.now() 
-                });
+                const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+                for(let i=0; i<4; i++) roomId += chars.charAt(Math.floor(Math.random()*chars.length));
+                await set(ref(db, `rooms/${roomId}`), { score: 0, lostCount: 0, hostId: myId, startTime: Date.now() });
             } else {
-                if(inputRoom.length < 3) return alert("Digite um código de sala válido!");
-                roomId = inputRoom;
-                const snap = await get(ref(db, `rooms/${roomId}`));
-                if(!snap.exists()) return alert("Sala não encontrada!");
+                if(codeInput.length < 4) return alert("Código inválido!");
+                roomId = codeInput;
+                const check = await get(ref(db, `rooms/${roomId}`));
+                if(!check.exists()) return alert("Sala não encontrada!");
             }
 
-            // ATUALIZA O DISPLAY DA SALA
-            document.getElementById('room-display').innerText = `SALA: ${roomId}`;
-            document.getElementById('menu').classList.add('hidden');
+            isHost = host;
+            document.getElementById('menu').style.display = 'none';
             document.getElementById('game-container').style.display = 'block';
-            
-            initGame(name);
+            document.getElementById('room-code').innerText = "SALA: " + roomId;
+
+            setupPlayer(name);
+            gameLoop();
         }
 
-        function initGame(name) {
+        function setupPlayer(name) {
             resize();
-            const myRef = ref(db, `rooms/${roomId}/players/${myId}`);
-            // Cor agora serve para o "círculo base" abaixo do pinguim
-            set(myRef, { 
+            const playerRef = ref(db, `rooms/${roomId}/players/${myId}`);
+            set(playerRef, { 
                 name, x: canvas.width/2, y: canvas.height/2, 
-                color: `hsl(${Math.random()*360}, 70%, 50%)`, 
-                holding: null, dir: 1 
+                color: `hsl(${Math.random()*360}, 70%, 50%)`, holding: null 
             });
-            onDisconnect(myRef).remove();
+            onDisconnect(playerRef).remove();
 
-            // Listener Global
+            // Listener principal
             onValue(ref(db, `rooms/${roomId}`), (snap) => {
                 const data = snap.val();
-                if(!data) {
-                     // Sala fechada ou deletada
-                    return; 
-                }
+                if(!data) return;
                 players = data.players || {};
                 customers = data.customers || {};
                 score = data.score || 0;
                 
-                // Sons de evento
-                if((data.lostCount || 0) > lostCount) playSound(sfx.fail);
+                if(data.lostCount > lostCount) sfx.fail.play();
                 lostCount = data.lostCount || 0;
                 
                 document.getElementById('score').innerText = score;
                 document.getElementById('lost-count').innerText = lostCount;
-                
                 if(lostCount >= 5) {
                     document.getElementById('game-over').style.display = 'flex';
                     sfx.bgm.pause();
                 }
             });
 
-            if(isHost) setInterval(updateHostLogic, 1000);
-            requestAnimationFrame(loop);
+            if(isHost) setInterval(hostLogic, 2000); // Lógica do Host
         }
 
-        function updateHostLogic() {
-            const roomRef = ref(db, `rooms/${roomId}`);
-            get(roomRef).then(snap => {
-                if(!snap.exists()) return;
-                const data = snap.val();
-                
-                // Dificuldade aumenta com o tempo
-                const timeElapsed = (Date.now() - data.startTime) / 1000;
-                const diff = 1 + Math.floor(timeElapsed / 45) * 0.3;
-                
-                // Gerar Clientes
-                const maxCustomers = 3 + Math.floor(diff/2);
-                if(Object.keys(customers).length < maxCustomers && Math.random() > (0.7 - (diff*0.05))) {
-                    const table = layout.tables[Math.floor(Math.random()*layout.tables.length)];
-                    // Verifica se mesa está vazia
-                    if(!Object.values(customers).some(c => c.tableId === table.id)) {
-                        push(ref(db, `rooms/${roomId}/customers`), { 
-                            tableId: table.id, 
-                            wanted: Math.floor(Math.random()*DISHES.length)+1, 
-                            patience: 100 
-                        });
-                        // playSound(sfx.chop); // Som de cliente chegando (opcional)
-                    }
+        function hostLogic() {
+            // Gerar Clientes
+            if(Object.keys(customers).length < 3 && Math.random() > 0.4) {
+                const table = layout.tables[Math.floor(Math.random()*layout.tables.length)];
+                // Verifica se mesa está vazia
+                const occupied = Object.values(customers).some(c => c.tableId === table.id);
+                if(!occupied) {
+                    push(ref(db, `rooms/${roomId}/customers`), { 
+                        tableId: table.id, 
+                        wanted: DISHES[Math.floor(Math.random()*DISHES.length)].id, 
+                        patience: 100 
+                    });
                 }
-
-                // Atualizar Paciência
-                let updates = {};
-                let gameOverTrigger = false;
-                
-                Object.keys(customers).forEach(key => {
-                    const c = customers[key];
-                    const p = c.patience - (2.5 * diff); // Decaimento
-                    
-                    if(p <= 0) {
-                        updates[`customers/${key}`] = null; // Remove
-                        updates['lostCount'] = (data.lostCount || 0) + 1;
-                    } else {
-                        updates[`customers/${key}/patience`] = p;
-                    }
-                });
-                
-                if(Object.keys(updates).length > 0) update(roomRef, updates);
+            }
+            // Reduzir Paciência
+            Object.keys(customers).forEach(k => {
+                const p = customers[k].patience - 5;
+                if(p <= 0) {
+                    remove(ref(db, `rooms/${roomId}/customers/${k}`));
+                    runTransaction(ref(db, `rooms/${roomId}/lostCount`), (c) => (c||0) + 1);
+                } else {
+                    update(ref(db, `rooms/${roomId}/customers/${k}`), { patience: p });
+                }
             });
         }
 
-        // --- CONTROLES & INTERAÇÃO ---
-        const boostBtn = document.getElementById('boost-btn');
-        boostBtn.onclick = () => {
-            if(boostCooldown || isBoosting) return;
-            isBoosting = true; 
-            playSound(sfx.nitro);
-            boostBtn.classList.add('disabled');
-            
-            setTimeout(() => { 
-                isBoosting = false; 
-                boostCooldown = true; 
-                setTimeout(() => { boostCooldown = false; boostBtn.classList.remove('disabled'); }, 8000);
-            }, 3000); // 3s de boost
-        };
-
+        // --- CONTROLES ---
         const joyZone = document.getElementById('joystick-zone');
-        const joyNub = document.getElementById('joystick-nub');
-        
         joyZone.ontouchstart = (e) => { e.preventDefault(); joystick.active = true; };
         window.ontouchmove = (e) => {
             if(!joystick.active) return;
-            const t = e.touches[0]; 
-            const r = joyZone.getBoundingClientRect();
-            const cx = r.left + r.width/2; 
-            const cy = r.top + r.height/2;
-            
+            const t = e.touches[0];
+            const rect = joyZone.getBoundingClientRect();
+            const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
             let dx = t.clientX - cx, dy = t.clientY - cy;
-            const dist = Math.hypot(dx, dy);
-            const max = r.width/2;
-            
+            const dist = Math.hypot(dx, dy), max = rect.width/2;
             if(dist > max) { dx *= max/dist; dy *= max/dist; }
-            
-            joystick.dx = dx/max; 
-            joystick.dy = dy/max;
-            joyNub.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+            joystick.dx = dx/max; joystick.dy = dy/max;
+            document.getElementById('joystick-nub').style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
         };
+        window.ontouchend = () => { joystick.active = false; joystick.dx = 0; joystick.dy = 0; document.getElementById('joystick-nub').style.transform = `translate(-50%, -50%)`; };
+
+        document.getElementById('action-btn').ontouchstart = (e) => { e.preventDefault(); actionHeld = true; };
+        document.getElementById('action-btn').ontouchend = () => { actionHeld = false; cookTimer = 0; sfx.cook.pause(); };
         
-        window.ontouchend = () => { 
-            joystick.active = false; joystick.dx = 0; joystick.dy = 0; 
-            joyNub.style.transform = `translate(-50%, -50%)`; 
+        document.getElementById('boost-btn').onclick = (e) => {
+            if(isBoosting) return;
+            isBoosting = true; sfx.nitro.play();
+            e.target.classList.add('disabled');
+            setTimeout(() => { isBoosting = false; setTimeout(() => e.target.classList.remove('disabled'), 5000); }, 3000);
         };
 
-        const actBtn = document.getElementById('action-btn');
-        actBtn.ontouchstart = (e) => { 
-            e.preventDefault(); 
-            actionHeld = true; 
-            // Garante que o som de cozinha possa tocar
-            if(sfx.cook.paused) sfx.cook.load();
-        };
-        actBtn.ontouchend = () => { 
-            actionHeld = false; cookTimer = 0; currentStation = null; 
-            sfx.cook.pause(); 
-            sfx.chop.currentTime = 0; // Reset
-        };
-
-        // --- RENDER ---
+        // --- RENDERIZAR ---
         function resize() {
-            canvas.width = window.innerWidth; 
-            canvas.height = window.innerHeight;
-            
-            const gridSize = Math.min(canvas.width, canvas.height) / 8;
-            
-            // Layout das Estações (Topo)
-            layout.stations = [];
-            for(let i=0; i<DISHES.length; i++) {
-                layout.stations.push({ 
-                    x: (canvas.width / (DISHES.length + 1)) * (i+1), 
-                    y: gridSize, 
-                    dish: DISHES[i], 
-                    size: gridSize * 0.8 
-                });
-            }
-            
-            // Layout das Mesas (Fundo)
-            layout.tables = [];
-            const cols = 2; const rows = 2;
-            for(let i=0; i<4; i++) {
-                layout.tables.push({ 
-                    id: i, 
-                    x: (canvas.width / 3) * ((i%2)+1), 
-                    y: canvas.height * 0.5 + (Math.floor(i/2) * gridSize * 1.5), 
-                    size: gridSize 
-                });
-            }
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            // Recalcular posições
+            const pad = canvas.width / (DISHES.length+1);
+            layout.stations = DISHES.map((d, i) => ({ x: pad*(i+1), y: 80, dish: d, size: 50 }));
+            layout.tables = [0,1,2,3].map(i => ({ id: i, x: (i%2==0 ? canvas.width*0.25 : canvas.width*0.75), y: 300 + Math.floor(i/2)*150, size: 60 }));
         }
         window.onresize = resize;
 
-        function loop() {
-            // Fundo
+        function gameLoop() {
             ctx.clearRect(0,0, canvas.width, canvas.height);
             
-            // Chão Cozinha
-            ctx.fillStyle = "#353b48"; 
-            ctx.fillRect(0,0, canvas.width, canvas.height * 0.35);
-            // Piso Restaurante (Xadrez sutil)
-            ctx.fillStyle = "#7f8c8d"; 
-            ctx.fillRect(0, canvas.height * 0.35, canvas.width, canvas.height * 0.65);
-            
-            // Divisória Balcão
-            ctx.fillStyle = "#2f3640";
-            ctx.fillRect(0, canvas.height * 0.34, canvas.width, 10);
+            // Fundo
+            ctx.fillStyle = "#3d3d3d"; ctx.fillRect(0,0, canvas.width, 150); // Cozinha
+            ctx.fillStyle = "#7f8c8d"; ctx.fillRect(0, 150, canvas.width, canvas.height); // Salão
 
-            // 1. DESENHAR ESTAÇÕES
+            // 1. Estações
             layout.stations.forEach(s => {
-                // Bancada
-                ctx.fillStyle = "#dcdde1"; 
-                ctx.fillRect(s.x - s.size/2, s.y - s.size/2, s.size, s.size);
-                ctx.strokeStyle = "#718093"; ctx.lineWidth = 4;
-                ctx.strokeRect(s.x - s.size/2, s.y - s.size/2, s.size, s.size);
-                
-                // Icone
-                ctx.font = `${s.size * 0.6}px Arial`; 
-                ctx.textAlign = "center"; 
-                ctx.textBaseline = "middle";
-                ctx.fillText(s.dish.icon, s.x, s.y);
+                ctx.fillStyle = "#bdc3c7"; ctx.fillRect(s.x-25, s.y-25, 50, 50);
+                ctx.font = "30px Arial"; ctx.textAlign="center"; ctx.fillText(s.dish.icon, s.x, s.y+10);
             });
 
-            // 2. DESENHAR MESAS
+            // 2. Mesas e Clientes (NPCs)
             layout.tables.forEach(t => {
-                // Cadeira e Mesa
-                ctx.fillStyle = "#e1b12c"; 
-                ctx.beginPath(); ctx.arc(t.x, t.y, t.size/2, 0, Math.PI*2); ctx.fill();
-                ctx.strokeStyle = "#c23616"; ctx.lineWidth = 4; ctx.stroke();
+                // Mesa
+                ctx.fillStyle = "#e67e22"; ctx.beginPath(); ctx.arc(t.x, t.y, t.size/2, 0, Math.PI*2); ctx.fill();
                 
-                // Cliente
+                // Verificar cliente
                 const cust = Object.values(customers).find(c => c.tableId === t.id);
                 if(cust) {
-                    // Barra de Paciência
-                    const barW = t.size;
-                    const barH = 8;
-                    ctx.fillStyle = "black"; ctx.fillRect(t.x - barW/2, t.y - t.size, barW, barH);
+                    // DESENHAR O PINGUIM NPC
+                    ctx.font = "40px Arial"; ctx.textAlign="center";
+                    ctx.fillText("🐧", t.x, t.y - 10); // NPC sentado
                     
-                    const pct = cust.patience/100;
-                    ctx.fillStyle = pct > 0.5 ? "#4cd137" : (pct > 0.2 ? "orange" : "red");
-                    ctx.fillRect(t.x - barW/2 + 1, t.y - t.size + 1, (barW-2) * pct, barH - 2);
-                    
-                    // Pedido (Balão)
-                    ctx.fillStyle = "white"; 
-                    ctx.beginPath(); ctx.arc(t.x + t.size/2, t.y - t.size/2, 20, 0, Math.PI*2); ctx.fill();
-                    ctx.fillStyle = "black";
+                    // Balão de pedido
+                    ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(t.x+30, t.y-30, 20, 0, Math.PI*2); ctx.fill();
                     ctx.font = "20px Arial";
-                    const dishIcon = DISHES.find(d => d.id === cust.wanted)?.icon || "?";
-                    ctx.fillText(dishIcon, t.x + t.size/2, t.y - t.size/2);
+                    const dish = DISHES.find(d => d.id === cust.wanted);
+                    if(dish) ctx.fillText(dish.icon, t.x+30, t.y-25);
+
+                    // Barra de vida
+                    ctx.fillStyle = "red"; ctx.fillRect(t.x-25, t.y+35, 50, 5);
+                    ctx.fillStyle = "#2ecc71"; ctx.fillRect(t.x-25, t.y+35, 50 * (cust.patience/100), 5);
                 }
             });
 
-            // 3. LÓGICA DO JOGADOR LOCAL
+            // 3. Jogadores (Eu e Outros)
             const me = players[myId];
             if(me && lostCount < 5) {
+                // Movimento
                 if(joystick.active) {
-                    const spd = isBoosting ? 12 : 6;
-                    me.x += joystick.dx * spd; 
-                    me.y += joystick.dy * spd;
-                    
-                    // Limites da tela
-                    me.x = Math.max(20, Math.min(canvas.width-20, me.x));
-                    me.y = Math.max(20, Math.min(canvas.height-20, me.y));
-
-                    // Atualiza no Firebase
+                    const spd = isBoosting ? 10 : 5;
+                    me.x += joystick.dx * spd; me.y += joystick.dy * spd;
                     update(ref(db, `rooms/${roomId}/players/${myId}`), { x: me.x, y: me.y });
                 }
 
-                // Ação (Cozinhar ou Entregar)
+                // Ação
                 if(actionHeld) {
-                    // Cozinhando?
-                    const station = layout.stations.find(s => Math.hypot(me.x-s.x, me.y-s.y) < s.size);
+                    // Cozinhar
+                    const station = layout.stations.find(s => Math.hypot(me.x-s.x, me.y-s.y) < 50);
                     if(station && !me.holding) {
-                        currentStation = station; 
-                        cookTimer += (isBoosting ? 35 : 17); // ~1s a 2s
-                        
                         if(sfx.cook.paused) sfx.cook.play();
-                        
+                        currentStation = station;
+                        cookTimer += (isBoosting? 35 : 17);
                         if(cookTimer >= station.dish.time) {
                             update(ref(db, `rooms/${roomId}/players/${myId}`), { holding: station.dish.id });
-                            playSound(sfx.chop); // Som de "Pronto"
-                            actionHeld = false; sfx.cook.pause();
+                            actionHeld = false; sfx.cook.pause(); sfx.success.play();
                         }
-                    } else {
-                        sfx.cook.pause();
-                        cookTimer = 0;
                     }
-
-                    // Entregando?
-                    const table = layout.tables.find(t => Math.hypot(me.x-t.x, me.y-t.y) < t.size);
+                    // Entregar
+                    const table = layout.tables.find(t => Math.hypot(me.x-t.x, me.y-t.y) < 60);
                     if(table && me.holding) {
                         const cKey = Object.keys(customers).find(k => customers[k].tableId === table.id);
                         if(cKey && customers[cKey].wanted === me.holding) {
-                            // ENTREGA SUCESSO
-                            runTransaction(ref(db, `rooms/${roomId}/score`), s => (s || 0) + 100);
                             remove(ref(db, `rooms/${roomId}/customers/${cKey}`));
                             update(ref(db, `rooms/${roomId}/players/${myId}`), { holding: null });
-                            actionHeld = false; 
-                            playSound(sfx.success);
+                            runTransaction(ref(db, `rooms/${roomId}/score`), s => (s||0)+100);
+                            sfx.success.play(); actionHeld = false;
                         }
                     }
-                } else {
-                    sfx.cook.pause();
                 }
             }
 
-            // 4. DESENHAR JOGADORES (Pinguins)
+            // Desenhar Jogadores
             Object.values(players).forEach(p => {
-                // Sombra/Base colorida
-                ctx.fillStyle = p.color; 
-                ctx.beginPath(); ctx.ellipse(p.x, p.y + 15, 20, 10, 0, 0, Math.PI*2); ctx.fill();
-                
-                // CORPO DO PINGUIM (Emoji)
-                ctx.font = "45px Arial";
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                // Inverte o emoji se estiver andando para esquerda (opcional, complexo com emoji puro, mantendo simples)
-                ctx.fillText("🐧", p.x, p.y);
-
-                // NOME
-                ctx.fillStyle = "white"; 
-                ctx.font = "bold 14px Segoe UI"; 
-                ctx.strokeStyle = "black"; ctx.lineWidth = 3;
-                ctx.strokeText(p.name, p.x, p.y - 35);
-                ctx.fillText(p.name, p.x, p.y - 35);
-
-                // ITEM SEGURADO (Sobre a cabeça)
+                // Sombra
+                ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.beginPath(); ctx.ellipse(p.x, p.y+15, 15, 8, 0, 0, Math.PI*2); ctx.fill();
+                // Pinguim
+                ctx.font = "40px Arial"; ctx.textAlign = "center"; ctx.fillText("🐧", p.x, p.y);
+                // Nome e Prato
+                ctx.fillStyle = "white"; ctx.font = "12px Arial"; ctx.fillText(p.name, p.x, p.y-35);
                 if(p.holding) {
-                    const dish = DISHES.find(d => d.id === p.holding);
-                    if(dish) {
-                        // Fundo branco bolinha pro item
-                        ctx.fillStyle = "rgba(255,255,255,0.8)";
-                        ctx.beginPath(); ctx.arc(p.x + 15, p.y - 20, 15, 0, Math.PI*2); ctx.fill();
-                        
-                        ctx.font = "24px Arial";
-                        ctx.fillText(dish.icon, p.x + 15, p.y - 20);
-                    }
+                    const d = DISHES.find(x => x.id === p.holding);
+                    if(d) ctx.fillText(d.icon, p.x, p.y-50);
                 }
-
-                // BARRA DE COZINHAR (Apenas para o player local e ativo)
+                // Barra de Progresso
                 if(p.name === me?.name && actionHeld && currentStation) {
-                    const barW = 60;
-                    ctx.fillStyle = "white"; ctx.fillRect(p.x - barW/2, p.y - 50, barW, 8);
-                    ctx.fillStyle = "#f1c40f"; 
-                    const prog = Math.min(1, cookTimer/currentStation.dish.time);
-                    ctx.fillRect(p.x - barW/2, p.y - 50, barW * prog, 8);
+                    ctx.fillStyle = "gold"; ctx.fillRect(p.x-20, p.y-20, 40 * (cookTimer/currentStation.dish.time), 5);
                 }
             });
 
-            requestAnimationFrame(loop);
+            requestAnimationFrame(gameLoop);
         }
     </script>
 </body>
