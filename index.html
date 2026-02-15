@@ -1,177 +1,514 @@
-<!DOCTYPE html>
-<html lang="pt-br">
+<!doctype html>
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram 2.0</title>
-    <style>
-        :root { --blue: #0095f6; --bg: #fafafa; --border: #dbdbdb; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding-top: 60px; }
-        
-        /* Login Overlay */
-        #login-screen { position: fixed; inset: 0; background: white; z-index: 5000; display: none; align-items: center; justify-content: center; flex-direction: column; }
-        .login-box { border: 1px solid var(--border); padding: 40px; display: flex; flex-direction: column; gap: 10px; width: 300px; }
-        
-        /* Nav */
-        nav { background: white; border-bottom: 1px solid var(--border); position: fixed; top: 0; width: 100%; height: 60px; display: flex; justify-content: center; z-index: 1000; }
-        .nav-c { width: 100%; max-width: 935px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>Minecraft Mobile Multiplayer</title>
+<style>
+  html, body { height: 100%; margin: 0; background: #000; overflow: hidden; font-family: system-ui, sans-serif; user-select: none; -webkit-user-select: none; }
+  #app { position: fixed; inset: 0; }
+  canvas { display: block; width: 100%; height: 100%; }
+  
+  /* UI Elements */
+  #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+  .pointer-events-auto { pointer-events: auto; }
 
-        .main-grid { max-width: 935px; margin: 20px auto; display: grid; grid-template-columns: 1fr 300px; gap: 28px; }
-        
-        /* Stories */
-        .stories { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; gap: 15px; overflow-x: auto; }
-        .story { text-align: center; font-size: 12px; width: 66px; }
-        .story-img { width: 56px; height: 56px; border-radius: 50%; border: 2px solid #e1306c; padding: 2px; }
+  /* Top Bar */
+  #topBar { position: absolute; left: 10px; top: 10px; background: rgba(0,0,0,0.5); color: white; padding: 8px; border-radius: 8px; font-size: 12px; max-width: 300px; }
+  #nameInput { background: rgba(255,255,255,0.9); border: none; border-radius: 4px; padding: 4px; width: 100px; margin-top: 5px; }
 
-        /* Posts */
-        .post { background: white; border: 1px solid var(--border); border-radius: 8px; margin-top: 20px; }
-        .post-header { padding: 14px; font-weight: 600; display: flex; align-items: center; }
-        .post-img { width: 100%; display: block; }
-        .post-content { padding: 14px; }
+  /* Joystick Zone */
+  #joyZone { position: absolute; left: 20px; bottom: 20px; width: 120px; height: 120px; pointer-events: auto; }
 
-        /* Sidebar Sugestões */
-        .sidebar { position: sticky; top: 80px; }
-        .sug-box { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 15px; }
+  /* Action Buttons */
+  #actions { position: absolute; right: 20px; bottom: 40px; display: flex; flex-direction: column; gap: 15px; pointer-events: auto; }
+  .btn { width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.8); display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); active: scale(0.95); cursor: pointer; font-weight: bold; border: 2px solid #ccc; }
+  .btn.place { background: #81c784; color: #1b5e20; }
+  .btn.break { background: #e57373; color: #b71c1c; }
+  .btn.jump { background: #64b5f6; color: #0d47a1; margin-top: 10px;}
 
-        input[type="file"] { display: none; }
-        .btn { background: var(--blue); color: white; border: none; border-radius: 4px; padding: 8px; cursor: pointer; font-weight: bold; }
-    </style>
+  /* Chat & Players */
+  #panel { position: absolute; right: 10px; top: 10px; width: 200px; display: flex; flex-direction: column; gap: 5px; pointer-events: auto; }
+  #chatBox { background: rgba(0,0,0,0.6); padding: 5px; border-radius: 8px; height: 150px; overflow-y: auto; color: white; font-size: 11px; display: flex; flex-direction: column; justify-content: flex-end; }
+  #chatInputWrapper { display: flex; gap: 2px; }
+  #chatInput { flex: 1; border-radius: 4px; border: none; padding: 4px; font-size: 11px; }
+  #sendBtn { border: none; background: #2c8f80; color: white; border-radius: 4px; padding: 0 8px; font-size: 10px; cursor: pointer; }
+  
+  /* Touch overlay for rotation */
+  #touchRotate { position: absolute; right: 0; top: 0; bottom: 0; width: 50%; z-index: 5; touch-action: none; }
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://esm.sh/three@0.160.0",
+    "nipplejs": "https://esm.sh/nipplejs@0.10.1"
+  }
+}
+</script>
 </head>
 <body>
 
-    <div id="login-screen">
-        <div class="login-box">
-            <h1 style="text-align: center;">Instagram 2</h1>
-            <input type="text" id="reg-user" placeholder="Nome de usuário">
-            <input type="password" id="reg-pass" placeholder="Senha">
-            <button class="btn" onclick="registrarUsuario()">Entrar e Salvar IP</button>
-        </div>
+<div id="app">
+  <canvas id="canvas"></canvas>
+  <div id="touchRotate"></div>
+
+  <div id="ui-layer">
+    <div id="topBar" class="pointer-events-auto">
+      Status: <span id="status">Conectando...</span><br>
+      <input id="nameInput" placeholder="Seu Nome" maxlength="12">
     </div>
 
-    <nav>
-        <div class="nav-c">
-            <div style="font-weight: bold; font-size: 20px;">Instagram 2.0</div>
-            <div>
-                <label class="btn" style="background:#efefef; color:black;"> ➕ Foto
-                    <input type="file" id="file-input" accept="image/*" onchange="subirFoto(this)">
-                </label>
-            </div>
-        </div>
-    </nav>
+    <div id="joyZone"></div>
 
-    <div class="main-grid">
-        <section>
-            <div class="stories" id="st-list"></div>
-            <div id="feed"></div>
-        </section>
+    <div id="actions">
+      <div id="btnPlace" class="btn place">▢</div>
+      <div id="btnBreak" class="btn break">✕</div>
+      <div id="btnJump" class="btn jump">▲</div>
+    </div>
+
+    <div id="panel">
+      <div id="chatBox"></div>
+      <form id="chatInputWrapper">
+        <input id="chatInput" placeholder="Mensagem..." autocomplete="off">
+        <button id="sendBtn">Env</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import nipplejs from 'nipplejs';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+import { getDatabase, ref, set, onValue, push, remove, onDisconnect } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+
+// --- CONFIGURAÇÃO FIREBASE FORNECIDA ---
+const firebaseConfig = {
+    apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q",
+    authDomain: "chatrucoy.firebaseapp.com",
+    databaseURL: "https://chatrucoy-default-rtdb.firebaseio.com",
+    projectId: "chatrucoy"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// --- VARIÁVEIS GLOBAIS ---
+let camera, scene, renderer;
+let localPlayerBox; // O objeto físico do jogador
+let remotePlayers = {}; // Armazena malhas de outros jogadores
+let blocks = {}; // Armazena blocos do mundo
+let joystickManager;
+let moveData = { x: 0, y: 0 };
+const GRAVITY = 20;
+const SPEED = 5;
+const JUMP_FORCE = 8;
+const playerVelocity = new THREE.Vector3();
+const myId = 'p_' + Math.random().toString(36).substr(2, 9);
+let myName = localStorage.getItem('mc_name') || 'Steve';
+
+// Setup Inicial
+document.getElementById('nameInput').value = myName;
+document.getElementById('nameInput').addEventListener('change', (e) => {
+    myName = e.target.value || 'Steve';
+    localStorage.setItem('mc_name', myName);
+});
+
+init();
+animate();
+
+function init() {
+    // 1. Cena e Renderizador
+    const canvas = document.getElementById('canvas');
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87CEEB); // Céu azul
+    scene.fog = new THREE.Fog(0x87CEEB, 10, 50);
+
+    // 2. Luzes
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(10, 20, 10);
+    scene.add(dirLight);
+
+    // 3. Chão base (Bedrock invisível ou grid)
+    const grid = new THREE.GridHelper(100, 100, 0x444444, 0x999999);
+    grid.position.y = -0.5;
+    scene.add(grid);
+
+    // 4. Jogador Local (Invisível, apenas lógica ou caixa simples para debug)
+    const geometry = new THREE.BoxGeometry(0.6, 1.8, 0.6);
+    const material = new THREE.MeshBasicMaterial({ visible: false }); 
+    localPlayerBox = new THREE.Mesh(geometry, material);
+    localPlayerBox.position.set(0, 5, 0); // Nasce no alto
+    scene.add(localPlayerBox);
+
+    // 5. Câmera
+    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+    // A câmera será filha de um "Pivot" ou seguirá o player no animate
+
+    // 6. Joystick
+    joystickManager = nipplejs.create({
+        zone: document.getElementById('joyZone'),
+        mode: 'static',
+        position: { left: '50%', top: '50%' },
+        color: 'white'
+    });
+    joystickManager.on('move', (evt, data) => {
+        if(data.vector) {
+            moveData.x = data.vector.x;
+            moveData.y = data.vector.y; // Y do joystick é frente/trás (Z no 3D)
+        }
+    });
+    joystickManager.on('end', () => { moveData.x = 0; moveData.y = 0; });
+
+    // 7. Eventos de Botões
+    document.getElementById('btnJump').addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        // Simples verificação de chão (se velocity y é perto de 0)
+        if (Math.abs(playerVelocity.y) < 0.1) {
+            playerVelocity.y = JUMP_FORCE;
+        }
+    });
+    document.getElementById('btnPlace').addEventListener('touchstart', (e) => { e.preventDefault(); interactBlock('place'); });
+    document.getElementById('btnBreak').addEventListener('touchstart', (e) => { e.preventDefault(); interactBlock('break'); });
+
+    // 8. Controle de Câmera (Touch no lado direito)
+    let isDragging = false;
+    let previousTouch = { x: 0, y: 0 };
+    let cameraAngleX = 0; // Pitch (olhar cima/baixo)
+    let cameraAngleY = 0; // Yaw (girar corpo)
+
+    const touchZone = document.getElementById('touchRotate');
+    touchZone.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        previousTouch.x = e.touches[0].clientX;
+        previousTouch.y = e.touches[0].clientY;
+    });
+    touchZone.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        const dx = e.touches[0].clientX - previousTouch.x;
+        const dy = e.touches[0].clientY - previousTouch.y;
         
-        <aside class="sidebar">
-            <div class="sug-box">
-                <p style="color: #8e8e8e; font-weight: 600;">Sugestões (Pessoas Reais)</p>
-                <div id="user-list"></div>
-            </div>
-        </aside>
-    </div>
+        cameraAngleY -= dx * 0.005;
+        cameraAngleX -= dy * 0.005;
+        // Limitar olhar pra cima/baixo
+        cameraAngleX = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, cameraAngleX));
 
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-        import { getDatabase, ref, set, push, onValue, get } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
-        // Importe o Storage para as fotos funcionarem
-        import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js';
+        previousTouch.x = e.touches[0].clientX;
+        previousTouch.y = e.touches[0].clientY;
+    });
+    touchZone.addEventListener('touchend', () => { isDragging = false; });
+    
+    // Armazenar ângulos no objeto do player para facilitar
+    localPlayerBox.rotation.order = "YXZ";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q",
-            databaseURL: "https://chatrucoy-default-rtdb.firebaseio.com",
-            projectId: "chatrucoy",
-            storageBucket: "chatrucoy.appspot.com" // Verifique se é este no seu console
-        };
+    // 9. Networking
+    setupFirebase();
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const storage = getStorage(app);
-        let meuIp, meuUser;
+    // 10. Chat
+    setupChat();
 
-        // --- LOGIN POR IP ---
-        async function checarAcesso() {
-            const res = await fetch('https://api.ipify.org?format=json');
-            const data = await res.json();
-            meuIp = data.ip.replace(/\./g, '_');
+    // 11. Redimensionamento
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+}
 
-            const snap = await get(ref(db, `ips/${meuIp}`));
-            if (snap.exists()) {
-                meuUser = snap.val().username;
-                iniciarApp();
+// --- LÓGICA DE JOGO ---
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    const dt = 0.016; // Time step fixo aproximado
+
+    // 1. Aplicar Rotação da Câmera (Input Touch)
+    // O corpo do player gira no eixo Y (Esquerda/Direita)
+    localPlayerBox.rotation.y = -cameraAngleY; // Invertido para controle natural
+
+    // 2. Movimento
+    // Calcula vetor de movimento relativo à direção que o jogador olha
+    const direction = new THREE.Vector3();
+    // moveData.y é frente (negativo no Z local), moveData.x é lado (positivo no X local)
+    // Joystick para frente (y positivo) -> Z negativo
+    direction.z = -moveData.y; 
+    direction.x = moveData.x;
+    
+    direction.applyAxisAngle(new THREE.Vector3(0,1,0), localPlayerBox.rotation.y);
+    direction.normalize();
+
+    // Aplicar velocidade
+    if (moveData.x !== 0 || moveData.y !== 0) {
+        playerVelocity.x = direction.x * SPEED;
+        playerVelocity.z = direction.z * SPEED;
+    } else {
+        playerVelocity.x *= 0.8; // Fricção
+        playerVelocity.z *= 0.8;
+    }
+
+    // 3. Gravidade Simples
+    playerVelocity.y -= GRAVITY * dt;
+
+    // 4. Colisão Simples com o chão (y = 0 se não houver bloco)
+    // Prever nova posição
+    const newPos = localPlayerBox.position.clone().add(playerVelocity.clone().multiplyScalar(dt));
+    
+    // Colisão Chão Básico (Bedrock)
+    if (newPos.y < 1) { 
+        newPos.y = 1; 
+        playerVelocity.y = 0; 
+    }
+    
+    // Check colisão com blocos (muito simplificado: apenas verifica se o pé entra num bloco)
+    // Para um jogo real, precisaria de AABB vs AABB. Aqui vamos confiar no bom senso ou adicionar depois.
+    
+    localPlayerBox.position.copy(newPos);
+
+    // 5. Atualizar Posição da Câmera (Third Person)
+    // A câmera fica atrás e acima, e rotaciona baseada no cameraAngleX (pitch)
+    const camDist = 5;
+    const camHeight = 2;
+    
+    // Posição baseada na rotação
+    const cx = localPlayerBox.position.x + Math.sin(localPlayerBox.rotation.y) * camDist;
+    const cz = localPlayerBox.position.z + Math.cos(localPlayerBox.rotation.y) * camDist;
+    const cy = localPlayerBox.position.y + camHeight + (cameraAngleX * 2); // Olha pra cima/baixo move a cam
+
+    // Interpolação suave
+    camera.position.lerp(new THREE.Vector3(cx, cy, cz), 0.1);
+    camera.lookAt(localPlayerBox.position.x, localPlayerBox.position.y + 1, localPlayerBox.position.z);
+
+    // 6. Enviar dados para o Firebase (Throttle para não floodar)
+    if (Math.random() < 0.2) { // Envia ~12 vezes por segundo
+        updatePlayerNetwork();
+    }
+
+    renderer.render(scene, camera);
+}
+
+// --- INTERAÇÃO COM BLOCOS ---
+
+const raycaster = new THREE.Raycaster();
+const center = new THREE.Vector2(0, 0); // Raycast do centro da tela
+
+function interactBlock(action) {
+    // Raycast a partir da câmera
+    raycaster.setFromCamera(center, camera);
+    
+    // Pegar todos os blocos da cena
+    const meshes = [];
+    Object.values(blocks).forEach(b => meshes.push(b.mesh));
+    // Adicionar chão base invisivel para conseguir colocar blocos no nível 0
+    // Criamos um plano matemático para raycast se não houver blocos
+    
+    const intersects = raycaster.intersectObjects(meshes);
+
+    // Logica de Grid
+    let targetPos = null;
+
+    if (intersects.length > 0) {
+        const hit = intersects[0];
+        if (action === 'break') {
+            // Remove o bloco clicado
+            const key = getKeyFromPos(hit.object.position);
+            removeBlockNetwork(key);
+        } else if (action === 'place') {
+            // Coloca bloco na normal (lado) da face clicada
+            const p = hit.point.add(hit.face.normal.multiplyScalar(0.5));
+            targetPos = { x: Math.floor(p.x), y: Math.floor(p.y), z: Math.floor(p.z) };
+        }
+    } else if (action === 'place') {
+        // Se não clicou em nada, tenta raycast com o plano y=0
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const target = new THREE.Vector3();
+        raycaster.ray.intersectPlane(plane, target);
+        if (target) {
+            targetPos = { x: Math.floor(target.x), y: 0, z: Math.floor(target.z) };
+            // Limite de distancia
+            if (target.distanceTo(localPlayerBox.position) > 8) targetPos = null;
+        }
+    }
+
+    if (targetPos && action === 'place') {
+        // Não colocar bloco dentro do jogador
+        const dx = Math.abs(targetPos.x - localPlayerBox.position.x);
+        const dz = Math.abs(targetPos.z - localPlayerBox.position.z);
+        const dy = Math.abs(targetPos.y - localPlayerBox.position.y);
+        
+        if (dx < 0.8 && dz < 0.8 && dy < 1.8) return; // Bloqueia
+
+        addBlockNetwork(getKey(targetPos.x, targetPos.y, targetPos.z), { x: targetPos.x, y: targetPos.y, z: targetPos.z, t: 1 });
+    }
+}
+
+// --- NETWORKING (FIREBASE) ---
+
+function setupFirebase() {
+    document.getElementById('status').innerText = "Online";
+    const playersRef = ref(db, 'players');
+    const blocksRef = ref(db, 'blocks');
+
+    // Remove player ao desconectar
+    onDisconnect(ref(db, `players/${myId}`)).remove();
+
+    // 1. Ouvir outros jogadores
+    onValue(playersRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        
+        // Atualizar ou criar
+        Object.keys(data).forEach(key => {
+            if (key === myId) return; // Ignora a si mesmo
+            const pData = data[key];
+            
+            if (!remotePlayers[key]) {
+                // Criar novo jogador remoto
+                const mesh = createRemotePlayerMesh(pData.name);
+                scene.add(mesh);
+                remotePlayers[key] = { mesh: mesh, targetPos: new THREE.Vector3(pData.x, pData.y, pData.z) };
             } else {
-                document.getElementById('login-screen').style.display = 'flex';
+                // Atualizar posição (Lerp simples no animate poderia ser adicionado, aqui vai direto)
+                remotePlayers[key].mesh.position.set(pData.x, pData.y, pData.z);
+                remotePlayers[key].mesh.rotation.y = pData.r || 0;
             }
-        }
+        });
 
-        window.registrarUsuario = async () => {
-            const user = document.getElementById('reg-user').value;
-            if(!user) return alert("Digite um nome");
-            
-            await set(ref(db, `ips/${meuIp}`), { username: user });
-            await set(ref(db, `users/${user}`), { username: user, ip: meuIp });
-            location.reload();
-        }
+        // Remover desconectados
+        Object.keys(remotePlayers).forEach(key => {
+            if (!data[key]) {
+                scene.remove(remotePlayers[key].mesh);
+                delete remotePlayers[key];
+            }
+        });
+    });
 
-        function iniciarApp() {
-            document.getElementById('login-screen').style.display = 'none';
-            carregarFeed();
-            carregarSugestoes();
-        }
+    // 2. Ouvir blocos
+    onValue(blocksRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        const currentKeys = Object.keys(blocks);
+        const newKeys = Object.keys(data);
 
-        // --- POSTAR FOTO REAL ---
-        window.subirFoto = async (input) => {
-            const file = input.files[0];
-            if(!file) return;
+        // Adicionar novos
+        newKeys.forEach(k => {
+            if (!blocks[k]) {
+                createBlock(k, data[k].x, data[k].y, data[k].z, data[k].t);
+            }
+        });
 
-            const fileRef = sRef(storage, `posts/${Date.now()}_${file.name}`);
-            alert("Subindo foto... aguarde");
-            
-            await uploadBytes(fileRef, file);
-            const url = await getDownloadURL(fileRef);
+        // Remover deletados
+        currentKeys.forEach(k => {
+            if (!data[k]) {
+                scene.remove(blocks[k].mesh);
+                delete blocks[k];
+            }
+        });
+    });
+}
 
-            const newPost = push(ref(db, 'posts'));
-            set(newPost, {
-                user: meuUser,
-                url: url,
-                date: Date.now()
-            });
-        };
+function updatePlayerNetwork() {
+    const pos = localPlayerBox.position;
+    set(ref(db, `players/${myId}`), {
+        x: pos.x,
+        y: pos.y,
+        z: pos.z,
+        r: localPlayerBox.rotation.y,
+        name: myName
+    });
+}
 
-        function carregarFeed() {
-            onValue(ref(db, 'posts'), (snap) => {
-                const feed = document.getElementById('feed');
-                feed.innerHTML = '';
-                snap.forEach(p => {
-                    const post = p.val();
-                    feed.innerHTML = `
-                    <div class="post">
-                        <div class="post-header">${post.user}</div>
-                        <img src="${post.url}" class="post-img">
-                        <div class="post-content"><b>${post.user}</b> Foto real enviada agora!</div>
-                    </div>` + feed.innerHTML;
-                });
-            });
-        }
+function addBlockNetwork(key, data) {
+    set(ref(db, `blocks/${key}`), data);
+}
 
-        function carregarSugestoes() {
-            onValue(ref(db, 'users'), (snap) => {
-                const list = document.getElementById('user-list');
-                list.innerHTML = '';
-                snap.forEach(u => {
-                    if(u.key !== meuUser) {
-                        list.innerHTML += `<div style="display:flex; justify-content:space-between; margin-top:10px;">
-                            <span>${u.key}</span>
-                            <button class="btn" style="padding:4px 8px; font-size:11px;">Seguir</button>
-                        </div>`;
-                    }
-                });
-            });
-        }
+function removeBlockNetwork(key) {
+    remove(ref(db, `blocks/${key}`));
+}
 
-        checarAcesso();
-    </script>
+// --- AUXILIARES GRÁFICOS ---
+
+const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+const grassMat = new THREE.MeshStandardMaterial({ color: 0x55aa55 });
+const dirtMat = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
+
+function createBlock(key, x, y, z, type) {
+    const mesh = new THREE.Mesh(boxGeo, type === 1 ? grassMat : dirtMat);
+    mesh.position.set(x + 0.5, y + 0.5, z + 0.5); // Centraliza no grid
+    scene.add(mesh);
+    blocks[key] = { mesh: mesh, x, y, z };
+}
+
+function createRemotePlayerMesh(name) {
+    const group = new THREE.Group();
+    
+    // Corpo
+    const bodyGeo = new THREE.BoxGeometry(0.6, 1.8, 0.6);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 0; // O pivô do grupo é o centro? Ajuste se necessário
+    group.add(body);
+
+    // Nome (Canvas Sprite)
+    const canvas = document.createElement('canvas');
+    canvas.width = 256; canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillRect(0,0,256,64);
+    ctx.font = "30px Arial";
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.fillText(name || "Player", 128, 42);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMat = new THREE.SpriteMaterial({ map: texture });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.position.y = 1.5;
+    sprite.scale.set(2, 0.5, 1);
+    group.add(sprite);
+
+    return group;
+}
+
+function getKey(x, y, z) { return `${x}_${y}_${z}`; }
+function getKeyFromPos(vec) { 
+    return getKey(Math.floor(vec.x), Math.floor(vec.y), Math.floor(vec.z)); 
+}
+
+// --- CHAT SYSTEM ---
+function setupChat() {
+    const chatRef = ref(db, 'chat');
+    const msgBox = document.getElementById('chatBox');
+    
+    document.getElementById('chatInputWrapper').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if(!text) return;
+        
+        push(chatRef, { name: myName, text: text, time: Date.now() });
+        input.value = '';
+    });
+
+    onValue(chatRef, (snap) => {
+        const val = snap.val();
+        if(!val) return;
+        
+        msgBox.innerHTML = '';
+        const msgs = Object.values(val).slice(-15); // Ultimas 15
+        msgs.forEach(m => {
+            const el = document.createElement('div');
+            el.innerHTML = `<strong>${m.name}:</strong> ${m.text}`;
+            msgBox.appendChild(el);
+        });
+        msgBox.scrollTop = msgBox.scrollHeight;
+    });
+}
+
+</script>
 </body>
-                </html>
+    </html>
