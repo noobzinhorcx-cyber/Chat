@@ -2,577 +2,98 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Casa Multiplayer - Deluxe</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plugin Engine Mobile</title>
     <style>
-        /* --- ESTILOS GERAIS --- */
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f0f0f; color: white; touch-action: none; }
-        canvas { display: block; width: 100%; height: 100%; }
-
-        /* --- TELA DE LOGIN --- */
-        #login-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, #2b32b2 0%, #1488cc 100%);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 10;
-        }
-        .card {
-            background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(15px);
-            padding: 40px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            text-align: center; border: 1px solid rgba(255, 255, 255, 0.1); width: 300px;
-        }
-        h2 { color: #fff; text-transform: uppercase; letter-spacing: 2px; font-size: 20px; margin-bottom: 20px; }
-        input {
-            display: block; width: 100%; margin: 10px 0; padding: 15px; box-sizing: border-box;
-            border-radius: 8px; border: 1px solid #444; color: #fff; background: rgba(255,255,255,0.1);
-            transition: 0.3s;
-        }
-        input:focus { border-color: #4CAF50; background: rgba(255,255,255,0.15); }
-        button {
-            width: 100%; padding: 15px; border: none; border-radius: 8px; cursor: pointer;
-            font-weight: bold; text-transform: uppercase; transition: 0.3s; margin-top: 10px;
-        }
-        .btn-green { background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%); color: #000; box-shadow: 0 4px 15px rgba(67, 233, 123, 0.4); }
-        .btn-blue { background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); color: #000; margin-top: 5px; box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4); }
-        button:hover { transform: translateY(-2px); filter: brightness(1.1); }
-
-        /* --- UI DO JOGO --- */
-        #game-ui { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        body { margin: 0; background: #111; color: white; font-family: sans-serif; overflow: hidden; }
+        canvas { display: block; background: #222; }
         
-        #chat-container {
-            position: absolute; bottom: 20px; left: 20px; width: 350px; height: 220px;
-            background: rgba(0, 0, 0, 0.7); border-radius: 12px; padding: 15px;
-            display: flex; flex-direction: column; pointer-events: auto;
-            border: 1px solid rgba(255,255,255,0.1);
+        /* Interface de Upload */
+        #ui-layer { position: absolute; top: 10px; left: 10px; z-index: 10; pointer-events: none; }
+        .btn { 
+            pointer-events: auto; background: #4CAF50; color: white; padding: 10px; 
+            border: none; border-radius: 5px; cursor: pointer; font-size: 14px;
         }
-        @media (max-width: 600px) { #chat-container { width: 70%; height: 160px; left: 10px; bottom: 10px; } }
-
-        #messages {
-            flex: 1; overflow-y: auto; color: #eee; font-size: 13px;
-            margin-bottom: 10px; scrollbar-width: thin;
-        }
-        #messages div { margin-bottom: 6px; line-height: 1.4; text-shadow: 1px 1px 2px #000; }
-        #chatinput { 
-            width: 100%; padding: 10px; border-radius: 6px; border: none; 
-            background: rgba(255,255,255,0.1); color: white; box-sizing: border-box;
-        }
-        #chatinput:focus { background: rgba(255,255,255,0.2); outline: none; }
-
-        /* --- JOYSTICK --- */
-        #joystick-zone {
-            position: absolute; bottom: 40px; right: 40px; width: 140px; height: 140px;
-            background: rgba(255, 255, 255, 0.05); border-radius: 50%; border: 2px solid rgba(255,255,255,0.1);
-            pointer-events: auto; touch-action: none; backdrop-filter: blur(2px);
-        }
-        #joystick-thumb {
-            position: absolute; width: 60px; height: 60px; 
-            background: radial-gradient(circle, #fff 0%, #ccc 100%);
-            border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            box-shadow: 0 0 15px rgba(255,255,255,0.3);
-        }
+        #plugin-info { margin-top: 10px; font-size: 12px; color: #aaa; }
     </style>
 </head>
 <body>
 
-    <div id="login-screen">
-        <div class="card">
-            <h2>🏠 Casa Deluxe</h2>
-            <input id="nick" placeholder="Apelido" type="text" maxlength="12">
-            <input id="pass" placeholder="Senha" type="password">
-            <button class="btn-green" onclick="register()">Registrar</button>
-            <button class="btn-blue" onclick="login()">Entrar</button>
-        </div>
+    <div id="ui-layer">
+        <button class="btn" onclick="document.getElementById('fileInput').click()">🔌 Upload Plugin (.js)</button>
+        <input type="file" id="fileInput" style="display:none" accept=".js">
+        <div id="plugin-info">Nenhum plugin ativo</div>
     </div>
 
-    <canvas id="canvas"></canvas>
+    <canvas id="gameCanvas"></canvas>
 
-    <div id="game-ui">
-        <div id="chat-container">
-            <div id="messages"></div>
-            <div class="chat-input-area">
-                <input id="chatinput" placeholder="Mensagem..." autocomplete="off">
-            </div>
-        </div>
-        <div id="joystick-zone">
-            <div id="joystick-thumb"></div>
-        </div>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-        import { getDatabase, ref, set, onValue, push, remove, onDisconnect, get, update } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q",
-            authDomain: "chatrucoy.firebaseapp.com",
-            databaseURL: "https://chatrucoy-default-rtdb.firebaseio.com",
-            projectId: "chatrucoy",
-            storageBucket: "chatrucoy.appspot.com",
-            messagingSenderId: "817576008362",
-            appId: "1:817576008362:web:278e7f989b244add384ed3",
-            measurementId: "G-C4C057R7WL"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
-        const canvas = document.getElementById('canvas');
+    <script>
+        const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        
-        // --- PRE-RENDERIZAÇÃO DO PISO (Performance) ---
-        const houseSize = 2000;
-        const floorCanvas = document.createElement('canvas');
-        floorCanvas.width = houseSize;
-        floorCanvas.height = houseSize;
-        const fCtx = floorCanvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-        function generateFloor() {
-            // Fundo base
-            fCtx.fillStyle = '#5d4037';
-            fCtx.fillRect(0,0, houseSize, houseSize);
+        // --- ENGINE CORE (O que o plugin pode acessar) ---
+        const Game = {
+            player: { x: 100, y: 100, size: 30, color: 'cyan', speed: 5 },
+            entities: [],
+            plugins: [],
             
-            // Tábuas de madeira
-            const plankW = 100;
-            const plankH = 25;
-            for(let y = 0; y < houseSize; y += plankH) {
-                // Offset nas linhas ímpares
-                let xOffset = (y / plankH) % 2 === 0 ? 0 : -30;
-                for(let x = xOffset; x < houseSize; x += plankW) {
-                    // Variação leve de cor para realismo
-                    const shade = Math.random() * 20 - 10; 
-                    fCtx.fillStyle = `rgb(${101 + shade}, ${67 + shade}, ${33 + shade})`; // Marrom Madeira
-                    fCtx.fillRect(x, y, plankW - 2, plankH - 2);
-                }
+            // Função para o plugin registrar comportamentos
+            register: function(pluginData) {
+                this.plugins.push(pluginData);
+                document.getElementById('plugin-info').innerText = "Plugin Ativo: " + (pluginData.name || "Sem nome");
+                if(pluginData.onInit) pluginData.onInit(this);
             }
-            // Tapete Central (Exemplo de decoração estática)
-            fCtx.fillStyle = '#8e24aa'; // Roxo
-            fCtx.fillRect(850, 850, 300, 300);
-            fCtx.strokeStyle = '#ba68c8';
-            fCtx.lineWidth = 10;
-            fCtx.strokeRect(850, 850, 300, 300);
-        }
-        generateFloor();
-
-        // --- DECORAÇÃO (MÓVEIS) ---
-        // Vamos desenhar objetos simples por cima do chão, mas embaixo dos jogadores
-        const furnitures = [
-            { type: 'table', x: 1000, y: 1000, w: 120, h: 120, color: '#3e2723' },
-            { type: 'plant', x: 100, y: 100, r: 30, color: '#2e7d32' },
-            { type: 'plant', x: 1900, y: 100, r: 30, color: '#2e7d32' },
-            { type: 'plant', x: 100, y: 1900, r: 30, color: '#2e7d32' },
-            { type: 'plant', x: 1900, y: 1900, r: 30, color: '#2e7d32' },
-            { type: 'rug', x: 200, y: 200, w: 400, h: 600, color: '#bf360c' } // Tapete Sala Esquerda
-        ];
-
-        let player = { 
-            x: 500, y: 500, 
-            nick: '', 
-            tag: '[PLAYER]', 
-            color: '#2196F3', 
-            isAdmin: false,
-            lastSent: 0 
-        };
-        
-        let otherPlayers = {};
-        let camera = { x: 0, y: 0 };
-        const speed = 6;
-        const playerRadius = 18;
-        
-        let joystick = { active: false, dx: 0, dy: 0 };
-        const joyZone = document.getElementById('joystick-zone');
-        const joyThumb = document.getElementById('joystick-thumb');
-
-        const walls = [
-            { x: 0, y: 0, w: houseSize, h: 40 }, // Topo (Mais grossa)
-            { x: 0, y: houseSize - 40, w: houseSize, h: 40 }, // Fundo
-            { x: 0, y: 0, w: 40, h: houseSize }, // Esquerda
-            { x: houseSize - 40, y: 0, w: 40, h: houseSize }, // Direita
-            
-            // Cruz Central (Paredes grossas)
-            { x: 980, y: 40, w: 40, h: 780 }, 
-            { x: 980, y: 1180, w: 40, h: 780 }, 
-            { x: 40, y: 980, w: 780, h: 40 }, 
-            { x: 1180, y: 980, w: 780, h: 40 } 
-        ];
-
-        window.register = async () => {
-            const nick = document.getElementById('nick').value.trim().replace(/[.#$/[\]]/g, "");
-            const pass = document.getElementById('pass').value.trim();
-            if (!nick || !pass) return alert('Preencha os campos!');
-
-            const snap = await get(ref(db, 'users/' + nick));
-            if (snap.exists()) return alert('Nick já está em uso!');
-
-            await set(ref(db, 'users/' + nick), { pass, tag: '[NOVATO]', color: 'hsl(' + Math.random() * 360 + ', 70%, 50%)' });
-            alert('Registrado! Pode entrar.');
         };
 
-        window.login = async () => {
-            const nick = document.getElementById('nick').value.trim().replace(/[.#$/[\]]/g, "");
-            const pass = document.getElementById('pass').value.trim();
-            if (!nick || !pass) return alert('Preencha os campos!');
+        // --- SISTEMA DE UPLOAD (Mobile Friendly) ---
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
 
-            const banSnap = await get(ref(db, 'banned/' + nick));
-            if (banSnap.exists()) return alert('Sua conta foi banida.');
-
-            const snap = await get(ref(db, 'users/' + nick));
-            if (!snap.exists()) return alert('Usuário não encontrado.');
-            
-            const data = snap.val();
-            if (data.pass !== pass) return alert('Senha errada.');
-
-            player.nick = nick;
-            player.color = data.color || '#2196F3';
-            player.tag = data.tag || '[PLAYER]';
-            player.isAdmin = (nick === 'ADM' && pass === '123');
-
-            const posSnap = await get(ref(db, 'positions/' + nick));
-            if (posSnap.exists()) {
-                player.x = posSnap.val().x;
-                player.y = posSnap.val().y;
-            }
-
-            startGame();
-        };
-
-        function startGame() {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('game-ui').style.display = 'block';
-            
-            const playerRef = ref(db, 'online/' + player.nick);
-            onDisconnect(playerRef).remove();
-            const savePosRef = ref(db, 'positions/' + player.nick);
-            onDisconnect(savePosRef).set({ x: player.x, y: player.y });
-
-            onValue(ref(db, 'online'), (snap) => {
-                otherPlayers = snap.val() || {};
-                delete otherPlayers[player.nick];
-            });
-
-            setupChat();
-            setupJoystick();
-            resizeCanvas();
-            requestAnimationFrame(gameLoop);
-        }
-
-        function checkCollision(nextX, nextY) {
-            for (let w of walls) {
-                if (nextX + playerRadius > w.x && nextX - playerRadius < w.x + w.w &&
-                    nextY + playerRadius > w.y && nextY - playerRadius < w.y + w.h) {
-                    return true;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    // Aqui acontece a mágica: transformamos o texto do arquivo em código executável
+                    const pluginCode = event.target.result;
+                    const script = document.createElement('script');
+                    script.text = pluginCode;
+                    document.body.appendChild(script);
+                    console.log("Plugin carregado com sucesso!");
+                } catch (err) {
+                    alert("Erro no Plugin: " + err);
                 }
-            }
-            return false;
-        }
-
-        function updateNetwork() {
-            const now = Date.now();
-            if (now - player.lastSent > 50) {
-                update(ref(db, 'online/' + player.nick), {
-                    x: Math.round(player.x),
-                    y: Math.round(player.y),
-                    tag: player.tag,
-                    color: player.color
-                });
-                player.lastSent = now;
-            }
-        }
-
-        function gameLoop() {
-            let moveX = 0;
-            let moveY = 0;
-
-            if (joystick.active) {
-                moveX = joystick.dx;
-                moveY = joystick.dy;
-            }
-
-            if (keys['w'] || keys['ArrowUp']) moveY = -1;
-            if (keys['s'] || keys['ArrowDown']) moveY = 1;
-            if (keys['a'] || keys['ArrowLeft']) moveX = -1;
-            if (keys['d'] || keys['ArrowRight']) moveX = 1;
-
-            if (moveX !== 0 || moveY !== 0) {
-                const length = Math.sqrt(moveX * moveX + moveY * moveY);
-                moveX /= length;
-                moveY /= length;
-
-                let nextX = player.x + moveX * speed;
-                let nextY = player.y + moveY * speed;
-
-                if (!checkCollision(nextX, player.y)) player.x = nextX;
-                if (!checkCollision(player.x, nextY)) player.y = nextY;
-
-                player.x = Math.max(playerRadius, Math.min(houseSize - playerRadius, player.x));
-                player.y = Math.max(playerRadius, Math.min(houseSize - playerRadius, player.y));
-
-                updateNetwork();
-            }
-
-            // Smooth Camera
-            let targetCamX = player.x - canvas.width / 2;
-            let targetCamY = player.y - canvas.height / 2;
-            
-            // Linear Interpolation (Lerp) para a câmera ficar suave
-            camera.x += (targetCamX - camera.x) * 0.1;
-            camera.y += (targetCamY - camera.y) * 0.1;
-
-            // Clamp Camera
-            camera.x = Math.max(-100, Math.min(houseSize - canvas.width + 100, camera.x));
-            camera.y = Math.max(-100, Math.min(houseSize - canvas.height + 100, camera.y));
-
-            render();
-            requestAnimationFrame(gameLoop);
-        }
-
-        function render() {
-            // Fundo Preto (fora do mapa)
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.save();
-            ctx.translate(-camera.x, -camera.y);
-
-            // 1. CHÃO (Imagem pré-renderizada)
-            ctx.drawImage(floorCanvas, 0, 0);
-
-            // 2. MOBÍLIA (Embaixo das paredes)
-            for(let f of furnitures) {
-                // Sombra do móvel
-                ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                if(f.type === 'plant') {
-                    ctx.beginPath(); ctx.arc(f.x+5, f.y+5, f.r, 0, Math.PI*2); ctx.fill();
-                    ctx.fillStyle = f.color;
-                    ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI*2); ctx.fill();
-                    // Detalhe da planta
-                    ctx.fillStyle = '#4caf50'; ctx.beginPath(); ctx.arc(f.x, f.y, f.r*0.6, 0, Math.PI*2); ctx.fill();
-                } else if(f.type === 'table') {
-                    ctx.fillRect(f.x+8, f.y+8, f.w, f.h);
-                    ctx.fillStyle = f.color;
-                    ctx.fillRect(f.x, f.y, f.w, f.h);
-                    // Toalha de mesa
-                    ctx.fillStyle = '#efebe9'; ctx.fillRect(f.x+20, f.y+20, f.w-40, f.h-40);
-                } else {
-                    ctx.fillStyle = f.color; ctx.fillRect(f.x, f.y, f.w, f.h);
-                }
-            }
-
-            // 3. PAREDES (Com efeito 2.5D)
-            for (let w of walls) {
-                // Sombra Projetada
-                ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                ctx.fillRect(w.x + 15, w.y + 15, w.w, w.h);
-                
-                // Corpo da Parede
-                const wallColor = '#3e2723';
-                ctx.fillStyle = wallColor;
-                ctx.fillRect(w.x, w.y, w.w, w.h);
-
-                // Bevel (Bordas Iluminadas) - Simula 3D
-                ctx.lineWidth = 4;
-                // Borda Clara (Topo/Esquerda)
-                ctx.beginPath();
-                ctx.moveTo(w.x + w.w, w.y);
-                ctx.lineTo(w.x, w.y);
-                ctx.lineTo(w.x, w.y + w.h);
-                ctx.strokeStyle = '#6d4c41'; // Marrom claro
-                ctx.stroke();
-
-                // Borda Escura (Baixo/Direita)
-                ctx.beginPath();
-                ctx.moveTo(w.x + w.w, w.y);
-                ctx.lineTo(w.x + w.w, w.y + w.h);
-                ctx.lineTo(w.x, w.y + w.h);
-                ctx.strokeStyle = '#1b0000'; // Marrom muito escuro
-                ctx.stroke();
-            }
-
-            // 4. JOGADORES
-            function drawPlayer(p, x, y) {
-                // Sombra
-                ctx.beginPath();
-                ctx.ellipse(x, y + 15, playerRadius, playerRadius * 0.6, 0, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(0,0,0,0.4)';
-                ctx.fill();
-
-                // Corpo
-                ctx.beginPath();
-                ctx.arc(x, y, playerRadius, 0, Math.PI * 2);
-                ctx.fillStyle = p.color;
-                ctx.fill();
-                
-                // Brilho interno (efeito esfera)
-                let grad = ctx.createRadialGradient(x-5, y-5, 2, x, y, playerRadius);
-                grad.addColorStop(0, 'rgba(255,255,255,0.5)');
-                grad.addColorStop(1, 'rgba(255,255,255,0)');
-                ctx.fillStyle = grad;
-                ctx.fill();
-
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                // Nickname
-                ctx.textAlign = 'center';
-                // Tag Fundo
-                const tagW = ctx.measureText(p.tag).width;
-                ctx.fillStyle = 'rgba(0,0,0,0.6)';
-                ctx.roundRect(x - tagW/2 - 4, y - 55, tagW + 8, 18, 5); // roundRect moderno
-                ctx.fill();
-                
-                // Texto Tag
-                ctx.fillStyle = '#ffcc00'; // Dourado
-                ctx.font = 'bold 10px Arial';
-                ctx.fillText(p.tag, x, y - 43);
-
-                // Texto Nome (Com Shadow)
-                ctx.shadowColor = "black";
-                ctx.shadowBlur = 4;
-                ctx.fillStyle = '#fff'; 
-                ctx.font = 'bold 14px Segoe UI';
-                ctx.fillText(p.nick, x, y - 25);
-                ctx.shadowBlur = 0; // Reset shadow
-            }
-
-            // Outros
-            for (let id in otherPlayers) {
-                const op = otherPlayers[id];
-                drawPlayer(op, op.x, op.y);
-            }
-
-            // Eu
-            drawPlayer(player, player.x, player.y);
-
-            ctx.restore();
-
-            // 5. EFEITOS DE POS-PROCESSAMENTO (LIGHTING)
-            // Vinheta (Escurecer bordas)
-            let lightGrad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 100, canvas.width/2, canvas.height/2, 800);
-            lightGrad.addColorStop(0, 'rgba(0,0,0,0)');
-            lightGrad.addColorStop(1, 'rgba(0,0,20,0.6)'); // Azul noturno nas bordas
-            
-            ctx.fillStyle = lightGrad;
-            ctx.fillRect(0,0, canvas.width, canvas.height);
-        }
-
-        // --- SISTEMA DE CHAT ---
-        function setupChat() {
-            const chatInput = document.getElementById('chatinput');
-            const msgsDiv = document.getElementById('messages');
-
-            onValue(ref(db, 'chat'), (snap) => {
-                msgsDiv.innerHTML = '';
-                if (!snap.exists()) return;
-                
-                const rawMsgs = [];
-                snap.forEach(c => rawMsgs.push(c.val()));
-                
-                rawMsgs.slice(-20).forEach(msg => {
-                    const div = document.createElement('div');
-                    const isSys = msg.nick === 'Sistema';
-                    // Cores mais vibrantes no chat
-                    div.innerHTML = `<span style="color:#aaa; font-size:10px;">[${msg.tag}]</span> <b style="color:${msg.color}">${msg.nick}:</b> <span style="color:#fff">${msg.text}</span>`;
-                    msgsDiv.appendChild(div);
-                });
-                msgsDiv.scrollTop = msgsDiv.scrollHeight;
-            });
-
-            chatInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    const text = chatInput.value.trim();
-                    if (!text) return;
-                    chatInput.value = '';
-
-                    if (text.startsWith('/') && player.isAdmin) {
-                        handleCommand(text);
-                        return;
-                    }
-
-                    push(ref(db, 'chat'), { 
-                        nick: player.nick, 
-                        tag: player.tag, 
-                        color: player.color, 
-                        text 
-                    });
-                }
-            });
-        }
-
-        function handleCommand(cmd) {
-            const parts = cmd.split(' ');
-            if (parts[0] === '/limpar') remove(ref(db, 'chat'));
-        }
-
-        // --- JOYSTICK LOGIC ---
-        function setupJoystick() {
-            const joyRect = joyZone.getBoundingClientRect();
-            const radius = joyRect.width / 2;
-
-            joyZone.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                joystick.active = true;
-                const touch = e.changedTouches[0];
-                updateJoy(touch.clientX, touch.clientY, joyRect, radius);
-            });
-
-            joyZone.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                if (joystick.active) {
-                    const touch = e.changedTouches[0];
-                    updateJoy(touch.clientX, touch.clientY, joyRect, radius);
-                }
-            });
-
-            const endJoy = (e) => {
-                e.preventDefault();
-                joystick.active = false;
-                joystick.dx = 0;
-                joystick.dy = 0;
-                joyThumb.style.transform = `translate(-50%, -50%)`; 
-                joyThumb.style.left = '50%';
-                joyThumb.style.top = '50%';
             };
+            reader.readAsText(file);
+        });
 
-            joyZone.addEventListener('touchend', endJoy);
-            joyZone.addEventListener('touchcancel', endJoy);
+        // --- LOOP PRINCIPAL ---
+        function update() {
+            // Movimento básico (pode ser sobrescrito por plugins)
+            // Aqui os plugins podem rodar a cada frame
+            Game.plugins.forEach(p => {
+                if(p.onUpdate) p.onUpdate(Game);
+            });
+
+            draw();
+            requestAnimationFrame(update);
         }
 
-        function updateJoy(cx, cy, rect, radius) {
-            const centerX = rect.left + radius;
-            const centerY = rect.top + radius;
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Desenha Player
+            ctx.fillStyle = Game.player.color;
+            ctx.fillRect(Game.player.x, Game.player.y, Game.player.size, Game.player.size);
 
-            let dx = cx - centerX;
-            let dy = cy - centerY;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-
-            if (dist > radius) {
-                const ratio = radius / dist;
-                dx *= ratio;
-                dy *= ratio;
-            }
-
-            joystick.dx = dx / radius;
-            joystick.dy = dy / radius;
-
-            joyThumb.style.left = `${50 + (dx/radius)*50}%`;
-            joyThumb.style.top = `${50 + (dy/radius)*50}%`;
+            // Plugins podem desenhar coisas extras
+            Game.plugins.forEach(p => {
+                if(p.onDraw) p.onDraw(ctx, Game);
+            });
         }
 
-        const keys = {};
-        window.addEventListener('keydown', e => keys[e.key] = true);
-        window.addEventListener('keyup', e => keys[e.key] = false);
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            // Atualizar pos joystick se necessário
-        }
-        window.addEventListener('resize', resizeCanvas);
-        
-        // Polyfill para roundRect se o navegador for antigo
-        if (!ctx.roundRect) {
-            ctx.roundRect = function(x, y, w, h, r) { ctx.fillRect(x,y,w,h); }
-        }
+        update();
     </script>
 </body>
-  </html>
+</html>
