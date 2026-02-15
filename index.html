@@ -3,207 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram 2.0 - Realtime</title>
+    <title>Instagram 2.0</title>
     <style>
-        :root { --insta-blue: #0095f6; --border: #dbdbdb; --bg: #fafafa; }
-        body { font-family: -apple-system, sans-serif; background-color: var(--bg); margin: 0; padding-top: 70px; }
+        :root { --blue: #0095f6; --bg: #fafafa; --border: #dbdbdb; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding-top: 60px; }
+        
+        /* Login Overlay */
+        #login-screen { position: fixed; inset: 0; background: white; z-index: 5000; display: none; align-items: center; justify-content: center; flex-direction: column; }
+        .login-box { border: 1px solid var(--border); padding: 40px; display: flex; flex-direction: column; gap: 10px; width: 300px; }
         
         /* Nav */
-        nav { background: #fff; border-bottom: 1px solid var(--border); height: 60px; position: fixed; top: 0; width: 100%; display: flex; justify-content: center; z-index: 1000; }
-        .nav-content { width: 100%; max-width: 935px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
-        .logo { font-weight: bold; font-size: 20px; color: #262626; }
+        nav { background: white; border-bottom: 1px solid var(--border); position: fixed; top: 0; width: 100%; height: 60px; display: flex; justify-content: center; z-index: 1000; }
+        .nav-c { width: 100%; max-width: 935px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
 
-        /* Container Principal */
-        .main-container { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; padding: 0 10px; }
-
+        .main-grid { max-width: 935px; margin: 20px auto; display: grid; grid-template-columns: 1fr 300px; gap: 28px; }
+        
         /* Stories */
-        .stories-bar { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 15px; display: flex; gap: 15px; overflow-x: auto; }
-        .story-item { text-align: center; font-size: 11px; min-width: 65px; }
-        .story-ring { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); padding: 2px; margin-bottom: 5px; }
-        .story-ring img { width: 100%; height: 100%; border-radius: 50%; border: 2px solid white; object-fit: cover; }
+        .stories { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; gap: 15px; overflow-x: auto; }
+        .story { text-align: center; font-size: 12px; width: 66px; }
+        .story-img { width: 56px; height: 56px; border-radius: 50%; border: 2px solid #e1306c; padding: 2px; }
 
-        /* Sugestões de Seguidores */
-        .suggestions { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 15px; }
-        .user-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .btn-follow { background: var(--insta-blue); color: white; border: none; border-radius: 4px; padding: 5px 10px; font-weight: 600; cursor: pointer; font-size: 12px; }
+        /* Posts */
+        .post { background: white; border: 1px solid var(--border); border-radius: 8px; margin-top: 20px; }
+        .post-header { padding: 14px; font-weight: 600; display: flex; align-items: center; }
+        .post-img { width: 100%; display: block; }
+        .post-content { padding: 14px; }
 
-        /* Post Card */
-        .post-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-        .post-header { padding: 12px; font-weight: 600; font-size: 14px; }
-        .post-img { width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #eee; }
-        .post-footer { padding: 12px; }
+        /* Sidebar Sugestões */
+        .sidebar { position: sticky; top: 80px; }
+        .sug-box { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 15px; }
 
-        /* Chat (Direct) */
-        #chat-window { position: fixed; bottom: 20px; right: 20px; width: 300px; height: 400px; background: #fff; border: 1px solid var(--border); border-radius: 12px; display: none; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .chat-header { padding: 10px; border-bottom: 1px solid var(--border); font-weight: bold; display: flex; justify-content: space-between; }
-        .chat-msgs { flex: 1; overflow-y: auto; padding: 10px; font-size: 13px; }
-        .chat-input { display: flex; border-top: 1px solid var(--border); }
-        .chat-input input { flex: 1; border: none; padding: 12px; outline: none; }
-
-        /* Botões */
-        .action-btn { background: none; border: none; cursor: pointer; font-size: 18px; }
+        input[type="file"] { display: none; }
+        .btn { background: var(--blue); color: white; border: none; border-radius: 4px; padding: 8px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
+    <div id="login-screen">
+        <div class="login-box">
+            <h1 style="text-align: center;">Instagram 2</h1>
+            <input type="text" id="reg-user" placeholder="Nome de usuário">
+            <input type="password" id="reg-pass" placeholder="Senha">
+            <button class="btn" onclick="registrarUsuario()">Entrar e Salvar IP</button>
+        </div>
+    </div>
+
     <nav>
-        <div class="nav-content">
-            <div class="logo" id="my-name">Instagram 2</div>
+        <div class="nav-c">
+            <div style="font-weight: bold; font-size: 20px;">Instagram 2.0</div>
             <div>
-                <button class="action-btn" onclick="document.getElementById('chat-window').style.display='flex'">✉️</button>
-                <button class="action-btn" onclick="addStory()">📸</button>
-                <button class="action-btn" onclick="createPost()">➕</button>
+                <label class="btn" style="background:#efefef; color:black;"> ➕ Foto
+                    <input type="file" id="file-input" accept="image/*" onchange="subirFoto(this)">
+                </label>
             </div>
         </div>
     </nav>
 
-    <div class="main-container">
-        <div class="stories-bar" id="stories-list"></div>
-
-        <div class="suggestions" id="user-suggestions">
-            <div style="font-weight: 600; color: #8e8e8e; margin-bottom: 10px; font-size: 14px;">Sugestões para você</div>
-            <div id="users-list"></div>
-        </div>
-
-        <div id="feed"></div>
-    </div>
-
-    <div id="chat-window">
-        <div class="chat-header">Direct <span onclick="this.parentElement.parentElement.style.display='none'" style="cursor:pointer">×</span></div>
-        <div class="chat-msgs" id="chat-msgs"></div>
-        <div class="chat-input">
-            <input type="text" id="msg-input" placeholder="Mensagem...">
-            <button onclick="sendMsg()" style="border:none; background:none; color:var(--insta-blue); font-weight:bold; padding:10px;">Enviar</button>
-        </div>
+    <div class="main-grid">
+        <section>
+            <div class="stories" id="st-list"></div>
+            <div id="feed"></div>
+        </section>
+        
+        <aside class="sidebar">
+            <div class="sug-box">
+                <p style="color: #8e8e8e; font-weight: 600;">Sugestões (Pessoas Reais)</p>
+                <div id="user-list"></div>
+            </div>
+        </aside>
     </div>
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-        import { getDatabase, ref, onValue, set, push, get, update, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+        import { getDatabase, ref, set, push, onValue, get } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+        // Importe o Storage para as fotos funcionarem
+        import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q",
             databaseURL: "https://chatrucoy-default-rtdb.firebaseio.com",
-            projectId: "chatrucoy"
+            projectId: "chatrucoy",
+            storageBucket: "chatrucoy.appspot.com" // Verifique se é este no seu console
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        let meuIp = "", meuUser = "";
+        const storage = getStorage(app);
+        let meuIp, meuUser;
 
-        // --- 1. LOGIN AUTOMÁTICO POR IP ---
-        async function autoLogin() {
-            const resp = await fetch('https://api.ipify.org?format=json');
-            const data = await resp.json();
+        // --- LOGIN POR IP ---
+        async function checarAcesso() {
+            const res = await fetch('https://api.ipify.org?format=json');
+            const data = await res.json();
             meuIp = data.ip.replace(/\./g, '_');
 
-            const userRef = ref(db, `users/${meuIp}`);
-            const snap = await get(userRef);
-
-            if (!snap.exists()) {
-                meuUser = "User_" + Math.floor(Math.random() * 999);
-                await set(userRef, { username: meuUser, ip: data.ip });
-            } else {
+            const snap = await get(ref(db, `ips/${meuIp}`));
+            if (snap.exists()) {
                 meuUser = snap.val().username;
+                iniciarApp();
+            } else {
+                document.getElementById('login-screen').style.display = 'flex';
             }
-            document.getElementById('my-name').innerText = `Insta2 (${meuUser})`;
-            listenToRequests();
-            loadSuggestions();
         }
 
-        // --- 2. SEGUIR E SOLICITAÇÕES ---
-        window.followUser = (targetId, targetName) => {
-            set(ref(db, `requests/${targetId}/${meuIp}`), { from: meuUser, status: 'pendente' });
-            alert("Solicitação enviada!");
+        window.registrarUsuario = async () => {
+            const user = document.getElementById('reg-user').value;
+            if(!user) return alert("Digite um nome");
+            
+            await set(ref(db, `ips/${meuIp}`), { username: user });
+            await set(ref(db, `users/${user}`), { username: user, ip: meuIp });
+            location.reload();
+        }
+
+        function iniciarApp() {
+            document.getElementById('login-screen').style.display = 'none';
+            carregarFeed();
+            carregarSugestoes();
+        }
+
+        // --- POSTAR FOTO REAL ---
+        window.subirFoto = async (input) => {
+            const file = input.files[0];
+            if(!file) return;
+
+            const fileRef = sRef(storage, `posts/${Date.now()}_${file.name}`);
+            alert("Subindo foto... aguarde");
+            
+            await uploadBytes(fileRef, file);
+            const url = await getDownloadURL(fileRef);
+
+            const newPost = push(ref(db, 'posts'));
+            set(newPost, {
+                user: meuUser,
+                url: url,
+                date: Date.now()
+            });
         };
 
-        function listenToRequests() {
-            onValue(ref(db, `requests/${meuIp}`), (snap) => {
-                snap.forEach(child => {
-                    if (child.val().status === 'pendente') {
-                        if (confirm(`${child.val().from} quer te seguir. Aceitar?`)) {
-                            update(ref(db, `requests/${meuIp}/${child.key}`), { status: 'aceito' });
-                            alert("Novo seguidor adicionado!");
-                        }
-                    }
+        function carregarFeed() {
+            onValue(ref(db, 'posts'), (snap) => {
+                const feed = document.getElementById('feed');
+                feed.innerHTML = '';
+                snap.forEach(p => {
+                    const post = p.val();
+                    feed.innerHTML = `
+                    <div class="post">
+                        <div class="post-header">${post.user}</div>
+                        <img src="${post.url}" class="post-img">
+                        <div class="post-content"><b>${post.user}</b> Foto real enviada agora!</div>
+                    </div>` + feed.innerHTML;
                 });
             });
         }
 
-        function loadSuggestions() {
+        function carregarSugestoes() {
             onValue(ref(db, 'users'), (snap) => {
-                const container = document.getElementById('users-list');
-                container.innerHTML = '';
+                const list = document.getElementById('user-list');
+                list.innerHTML = '';
                 snap.forEach(u => {
-                    if (u.key !== meuIp) {
-                        container.innerHTML += `
-                        <div class="user-row">
-                            <span><b>${u.val().username}</b></span>
-                            <button class="btn-follow" onclick="followUser('${u.key}', '${u.val().username}')">Seguir</button>
+                    if(u.key !== meuUser) {
+                        list.innerHTML += `<div style="display:flex; justify-content:space-between; margin-top:10px;">
+                            <span>${u.key}</span>
+                            <button class="btn" style="padding:4px 8px; font-size:11px;">Seguir</button>
                         </div>`;
                     }
                 });
             });
         }
 
-        // --- 3. STORIES ---
-        window.addStory = () => {
-            const id = push(ref(db, 'stories'));
-            set(id, { user: meuUser, img: `https://picsum.photos/100/100?random=${Math.random()}`, expires: Date.now() + 86400000 });
-        };
-
-        onValue(ref(db, 'stories'), (snap) => {
-            const bar = document.getElementById('stories-list');
-            bar.innerHTML = '';
-            snap.forEach(s => {
-                if (s.val().expires > Date.now()) {
-                    bar.innerHTML += `
-                    <div class="story-item">
-                        <div class="story-ring"><img src="${s.val().img}"></div>
-                        <span>${s.val().user}</span>
-                    </div>`;
-                }
-            });
-        });
-
-        // --- 4. FEED ---
-        window.createPost = () => {
-            const p = push(ref(db, 'posts'));
-            set(p, { user: meuUser, img: `https://picsum.photos/600/600?random=${Math.random()}`, text: "Mais um dia de código! 🚀" });
-        };
-
-        onValue(ref(db, 'posts'), (snap) => {
-            const feed = document.getElementById('feed');
-            feed.innerHTML = '';
-            snap.forEach(p => {
-                const post = p.val();
-                feed.innerHTML = `
-                <div class="post-card">
-                    <div class="post-header">${post.user}</div>
-                    <img src="${post.img}" class="post-img">
-                    <div class="post-footer"><b>${post.user}</b> ${post.text}</div>
-                </div><br>` + feed.innerHTML;
-            });
-        });
-
-        // --- 5. DIRECT ---
-        window.sendMsg = () => {
-            const input = document.getElementById('msg-input');
-            if (!input.value) return;
-            push(ref(db, 'messages'), { user: meuUser, text: input.value });
-            input.value = '';
-        };
-
-        onValue(ref(db, 'messages'), (snap) => {
-            const box = document.getElementById('chat-msgs');
-            box.innerHTML = '';
-            snap.forEach(m => {
-                box.innerHTML += `<div><b>${m.val().user}:</b> ${m.val().text}</div>`;
-            });
-            box.scrollTop = box.scrollHeight;
-        });
-
-        autoLogin();
+        checarAcesso();
     </script>
 </body>
                 </html>
