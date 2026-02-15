@@ -3,265 +3,541 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Casa Multiplayer - Versão Estável</title>
+    <title>Casa Multiplayer Pro - Engine v2.0</title>
     <style>
-        /* --- ESTILOS GERAIS --- */
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; touch-action: none; }
-        canvas { display: block; width: 100%; height: 100%; }
+        /* --- ESTILIZAÇÃO DE INTERFACE (CSS) --- */
+        :root {
+            --primary: #2196F3;
+            --danger: #f44336;
+            --glass: rgba(0, 0, 0, 0.7);
+        }
 
-        /* --- TELA DE LOGIN --- */
+        body { 
+            margin: 0; padding: 0; overflow: hidden; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #000; color: white; touch-action: none; 
+        }
+
+        canvas { display: block; }
+
+        /* Tela de Login Estilizada */
         #login-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            position: absolute; inset: 0;
+            background: radial-gradient(circle, #2c3e50, #000);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 1000;
+            z-index: 9999; transition: opacity 0.5s ease;
         }
-        .card {
-            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);
-            padding: 30px; border-radius: 15px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            text-align: center; border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        input { display: block; width: 250px; margin: 10px auto; padding: 12px; border-radius: 5px; border: none; outline: none; }
-        button { padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; text-transform: uppercase; margin: 5px; }
-        .btn-green { background: #4CAF50; color: white; }
-        .btn-blue { background: #2196F3; color: white; }
 
-        /* --- CHAT ATUALIZADO --- */
-        #game-ui { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        
-        #chat-container {
-            position: absolute; bottom: 20px; left: 20px; width: 350px; height: 220px;
-            background: rgba(0, 0, 0, 0.6); border-radius: 10px; padding: 10px;
+        .login-card {
+            background: var(--glass); backdrop-filter: blur(10px);
+            padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);
+            text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .login-card h1 { margin-bottom: 20px; font-weight: 300; letter-spacing: 2px; }
+
+        input {
+            display: block; width: 280px; margin: 15px 0; padding: 12px;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px; color: white; outline: none; transition: 0.3s;
+        }
+
+        input:focus { border-color: var(--primary); background: rgba(255,255,255,0.1); }
+
+        .btn-group { display: flex; gap: 10px; }
+
+        button {
+            flex: 1; padding: 12px; border: none; border-radius: 8px;
+            cursor: pointer; font-weight: bold; transition: 0.3s;
+        }
+
+        .btn-reg { background: #45a049; color: white; }
+        .btn-log { background: var(--primary); color: white; }
+        button:hover { transform: translateY(-2px); filter: brightness(1.2); }
+
+        /* UI de Jogo */
+        #game-ui { display: none; position: absolute; inset: 0; pointer-events: none; }
+
+        #chat-wrapper {
+            position: absolute; bottom: 20px; left: 20px; width: 320px;
+            background: var(--glass); border-radius: 12px; padding: 10px;
             display: flex; flex-direction: column; pointer-events: auto;
-        }
-        #messages { flex: 1; overflow-y: auto; color: #fff; font-size: 14px; margin-bottom: 8px; }
-        #messages div { margin-bottom: 4px; line-height: 1.3; border-bottom: 1px solid rgba(255,255,255,0.05); }
-
-        .chat-input-area { display: flex; gap: 5px; height: 40px; }
-        #chatinput { flex: 1; padding: 0 10px; border-radius: 5px; border: none; background: rgba(255,255,255,0.9); color: #000; }
-        #btn-send { width: 45px; background: #2196F3; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; }
-
-        /* --- JOYSTICK --- */
-        #joystick-zone {
-            position: absolute; bottom: 40px; right: 40px; width: 100px; height: 100px;
-            background: rgba(255, 255, 255, 0.1); border-radius: 50%; border: 2px solid rgba(255,255,255,0.3);
-            pointer-events: auto;
-        }
-        #joystick-thumb {
-            position: absolute; width: 40px; height: 40px; background: rgba(255,255,255,0.8);
-            border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
-        @media (max-width: 600px) { #chat-container { width: 75%; height: 150px; left: 10px; bottom: 10px; } }
+        #chat-content { height: 150px; overflow-y: auto; font-size: 14px; margin-bottom: 8px; }
+        .chat-line { margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+        .input-row { display: flex; gap: 5px; }
+        #chat-input { flex: 1; background: rgba(255,255,255,0.1); border: none; color: white; padding: 8px; border-radius: 4px; }
+
+        #logout-btn {
+            position: absolute; top: 20px; right: 20px; pointer-events: auto;
+            background: var(--danger); font-size: 12px; padding: 8px 15px;
+        }
+
+        /* Joystick Visual */
+        #joy-base {
+            position: absolute; bottom: 50px; right: 50px; width: 120px; height: 120px;
+            background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 50%; pointer-events: auto;
+        }
+        #joy-stick {
+            position: absolute; top: 50%; left: 50%; width: 50px; height: 50px;
+            background: white; border-radius: 50%; transform: translate(-50%, -50%);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
     </style>
 </head>
 <body>
 
     <div id="login-screen">
-        <div class="card">
-            <h2>🏠 Casa Online</h2>
-            <input id="nick" placeholder="Nickname" type="text" maxlength="12">
-            <input id="pass" placeholder="Senha" type="password">
-            <button class="btn-green" onclick="register()">Registrar</button>
-            <button class="btn-blue" onclick="login()">Entrar</button>
+        <div class="login-card">
+            <h1>CASA ONLINE</h1>
+            <p id="auto-msg" style="color: #aaa; font-size: 12px;"></p>
+            <input type="text" id="user-nick" placeholder="Nickname">
+            <input type="password" id="user-pass" placeholder="Senha">
+            <div class="btn-group">
+                <button class="btn-reg" onclick="engine.auth.register()">REGISTRAR</button>
+                <button class="btn-log" onclick="engine.auth.login()">ENTRAR</button>
+            </div>
         </div>
     </div>
 
-    <canvas id="canvas"></canvas>
+    <canvas id="game-canvas"></canvas>
 
     <div id="game-ui">
-        <div id="chat-container">
-            <div id="messages"></div>
-            <div class="chat-input-area">
-                <input id="chatinput" placeholder="Conversar..." autocomplete="off">
-                <button id="btn-send" onclick="sendMessage()">➤</button>
+        <button id="logout-btn" onclick="engine.auth.logout()">SAIR DA CONTA</button>
+        
+        <div id="chat-wrapper">
+            <div id="chat-content"></div>
+            <div class="input-row">
+                <input type="text" id="chat-input" placeholder="Aperte Enter...">
+                <button onclick="engine.chat.send()" style="background:var(--primary); width: 40px;">➤</button>
             </div>
         </div>
-        <div id="joystick-zone">
-            <div id="joystick-thumb"></div>
+
+        <div id="joy-base">
+            <div id="joy-stick"></div>
         </div>
     </div>
 
     <script type="module">
+        /* --- IMPORTAÇÃO FIREBASE --- */
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-        import { getDatabase, ref, set, onValue, push, remove, onDisconnect, get, update } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+        import { getDatabase, ref, set, onValue, push, onDisconnect, get, update } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
 
-        const firebaseConfig = {
+        const fbConfig = {
             apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q",
             authDomain: "chatrucoy.firebaseapp.com",
             databaseURL: "https://chatrucoy-default-rtdb.firebaseio.com",
             projectId: "chatrucoy",
             storageBucket: "chatrucoy.appspot.com",
             messagingSenderId: "817576008362",
-            appId: "1:817576008362:web:278e7f989b244add384ed3",
-            measurementId: "G-C4C057R7WL"
+            appId: "1:817576008362:web:278e7f989b244add384ed3"
         };
 
-        const app = initializeApp(firebaseConfig);
+        const app = initializeApp(fbConfig);
         const db = getDatabase(app);
 
-        let player = { x: 500, y: 500, nick: '', tag: '[PLAYER]', color: '#2196F3', isAdmin: false, lastSent: 0 };
-        let otherPlayers = {};
-        const houseSize = 2000;
-        let camera = { x: 0, y: 0 };
-        const speed = 6;
-        let joystick = { active: false, dx: 0, dy: 0 };
+        /* --- CLASSES DO MOTOR DO JOGO --- */
 
-        const walls = [
-            { x: 0, y: 0, w: houseSize, h: 20 }, { x: 0, y: houseSize-20, w: houseSize, h: 20 },
-            { x: 0, y: 0, w: 20, h: houseSize }, { x: houseSize-20, y: 0, w: 20, h: houseSize },
-            { x: 990, y: 20, w: 20, h: 800 }, { x: 990, y: 1180, w: 20, h: 820 },
-            { x: 20, y: 990, w: 800, h: 20 }, { x: 1180, y: 990, w: 820, h: 20 }
-        ];
-
-        // --- FUNÇÕES DE CONTA ---
-        window.register = async () => {
-            const nick = document.getElementById('nick').value.trim().replace(/[.#$/[\]]/g, "");
-            const pass = document.getElementById('pass').value.trim();
-            if (!nick || !pass) return alert("Preencha tudo!");
-            const snap = await get(ref(db, 'users/' + nick));
-            if (snap.exists()) return alert("Nick em uso!");
-            await set(ref(db, 'users/' + nick), { pass, tag: '[MEMBER]', color: '#'+Math.floor(Math.random()*16777215).toString(16) });
-            alert("Sucesso! Pode logar.");
-        };
-
-        window.login = async () => {
-            const nick = document.getElementById('nick').value.trim().replace(/[.#$/[\]]/g, "");
-            const pass = document.getElementById('pass').value.trim();
-            const snap = await get(ref(db, 'users/' + nick));
-            if (!snap.exists() || snap.val().pass !== pass) return alert("Dados incorretos!");
-            
-            player.nick = nick;
-            player.tag = snap.val().tag;
-            player.color = snap.val().color;
-            player.isAdmin = (nick === 'ADM');
-
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('game-ui').style.display = 'block';
-            startEngine();
-        };
-
-        // --- CHAT LÓGICA ---
-        window.sendMessage = () => {
-            const input = document.getElementById('chatinput');
-            const text = input.value.trim();
-            if (!text) return;
-            
-            push(ref(db, 'chat'), {
-                nick: player.nick,
-                tag: player.tag,
-                color: player.color,
-                text: text
-            });
-            input.value = '';
-        };
-
-        function startEngine() {
-            onValue(ref(db, 'online'), (snap) => {
-                otherPlayers = snap.val() || {};
-                delete otherPlayers[player.nick];
-            });
-
-            onValue(ref(db, 'chat'), (snap) => {
-                const msgsDiv = document.getElementById('messages');
-                msgsDiv.innerHTML = '';
-                const data = snap.val();
-                if (data) {
-                    Object.values(data).slice(-15).forEach(m => {
-                        const div = document.createElement('div');
-                        div.innerHTML = `<small style="color:${m.color}">${m.tag}</small> <b>${m.nick}:</b> ${m.text}`;
-                        msgsDiv.appendChild(div);
-                    });
-                    msgsDiv.scrollTop = msgsDiv.scrollHeight;
-                }
-            });
-
-            document.getElementById('chatinput').addEventListener('keydown', (e) => {
-                if(e.key === 'Enter') window.sendMessage();
-            });
-
-            onDisconnect(ref(db, 'online/' + player.nick)).remove();
-            setupJoystick();
-            requestAnimationFrame(gameLoop);
-        }
-
-        // --- SISTEMA DE MOVIMENTO E RENDER ---
-        function checkCollision(nx, ny) {
-            for (let w of walls) {
-                if (nx + 15 > w.x && nx - 15 < w.x + w.w && ny + 15 > w.y && ny - 15 < w.y + w.h) return true;
+        // 1. Classe de Mensagens (Speech Bubbles)
+        class Bubble {
+            constructor(text) {
+                this.text = text;
+                this.expires = Date.now() + 5000;
+                this.opacity = 1;
             }
-            return false;
-        }
 
-        function gameLoop() {
-            if (joystick.active) {
-                let nx = player.x + joystick.dx * speed;
-                let ny = player.y + joystick.dy * speed;
-                if (!checkCollision(nx, player.y)) player.x = nx;
-                if (!checkCollision(player.x, ny)) player.y = ny;
+            draw(ctx, x, y) {
+                const timeleft = this.expires - Date.now();
+                if (timeleft < 1000) this.opacity = timeleft / 1000;
+
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                ctx.font = "bold 14px Arial";
+                const w = ctx.measureText(this.text).width + 20;
                 
-                const now = Date.now();
-                if (now - player.lastSent > 50) {
-                    update(ref(db, 'online/' + player.nick), { x: player.x, y: player.y, color: player.color, tag: player.tag });
-                    player.lastSent = now;
-                }
+                // Balão
+                ctx.fillStyle = "white";
+                ctx.beginPath();
+                ctx.roundRect(x - w/2, y - 80, w, 30, 8);
+                ctx.fill();
+                
+                // Rabinho do balão
+                ctx.beginPath();
+                ctx.moveTo(x - 5, y - 50);
+                ctx.lineTo(x + 5, y - 50);
+                ctx.lineTo(x, y - 42);
+                ctx.fill();
+
+                // Texto
+                ctx.fillStyle = "black";
+                ctx.textAlign = "center";
+                ctx.fillText(this.text, x, y - 60);
+                ctx.restore();
+            }
+        }
+
+        // 2. Classe dos Jogadores
+        class Entity {
+            constructor(id, data) {
+                this.id = id;
+                this.x = data.x || 500;
+                this.y = data.y || 500;
+                this.color = data.color || '#2196F3';
+                this.tag = data.tag || '[PLAYER]';
+                this.bubble = null;
             }
 
-            const canvas = document.getElementById('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            updateBubble(text) {
+                this.bubble = new Bubble(text);
+            }
 
-            camera.x = player.x - canvas.width / 2;
-            camera.y = player.y - canvas.height / 2;
+            draw(ctx, camera) {
+                const screenX = this.x - camera.x;
+                const screenY = this.y - camera.y;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            ctx.translate(-camera.x, -camera.y);
+                // Sombra
+                ctx.fillStyle = "rgba(0,0,0,0.3)";
+                ctx.beginPath();
+                ctx.ellipse(screenX, screenY + 15, 18, 10, 0, 0, Math.PI*2);
+                ctx.fill();
 
-            // Chão e Paredes
-            ctx.fillStyle = '#ddd'; ctx.fillRect(0,0,houseSize,houseSize);
-            ctx.fillStyle = '#5d4037';
-            walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+                // Corpo
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, 18, 0, Math.PI*2);
+                ctx.fill();
+                ctx.strokeStyle = "white";
+                ctx.lineWidth = 3;
+                ctx.stroke();
 
-            // Desenhar Jogadores
-            const drawP = (p, name, isMe) => {
-                ctx.fillStyle = p.color;
-                ctx.beginPath(); ctx.arc(p.x, p.y, 18, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = "#fff"; ctx.textAlign = "center";
-                ctx.fillText(name, p.x, p.y - 25);
-            };
+                // Nome e Tag
+                ctx.fillStyle = "white";
+                ctx.textAlign = "center";
+                ctx.font = "bold 12px Arial";
+                ctx.fillText(this.id, screenX, screenY - 30);
+                ctx.fillStyle = "rgba(255,255,255,0.6)";
+                ctx.font = "9px Arial";
+                ctx.fillText(this.tag, screenX, screenY - 45);
 
-            Object.keys(otherPlayers).forEach(id => drawP(otherPlayers[id], id, false));
-            drawP(player, player.nick, true);
-
-            ctx.restore();
-            requestAnimationFrame(gameLoop);
+                // Desenhar Balão se ativo
+                if (this.bubble && Date.now() < this.bubble.expires) {
+                    this.bubble.draw(ctx, screenX, screenY);
+                }
+            }
         }
 
-        function setupJoystick() {
-            const zone = document.getElementById('joystick-zone');
-            const thumb = document.getElementById('joystick-thumb');
-            const handle = (e) => {
-                const t = e.touches[0];
-                const rect = zone.getBoundingClientRect();
-                const center = { x: rect.left + 50, y: rect.top + 50 };
-                let dx = t.clientX - center.x;
-                let dy = t.clientY - center.y;
-                const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 50);
-                const angle = Math.atan2(dy, dx);
-                joystick.dx = (Math.cos(angle) * dist) / 50;
-                joystick.dy = (Math.sin(angle) * dist) / 50;
-                thumb.style.left = `calc(50% + ${Math.cos(angle)*dist}px)`;
-                thumb.style.top = `calc(50% + ${Math.sin(angle)*dist}px)`;
-            };
-            zone.addEventListener('touchstart', (e) => { joystick.active = true; handle(e); });
-            zone.addEventListener('touchmove', handle);
-            zone.addEventListener('touchend', () => { 
-                joystick.active = false; 
-                thumb.style.left = '50%'; thumb.style.top = '50%';
-            });
-        }
+        /* --- OBJETO PRINCIPAL DO JOGO (ENGINE) --- */
+        const engine = {
+            canvas: document.getElementById('game-canvas'),
+            ctx: null,
+            player: null,
+            others: {},
+            map: {
+                size: 3000,
+                walls: [
+                    // Paredes Externas
+                    { x: 0, y: 0, w: 3000, h: 40 }, 
+                    { x: 0, y: 2960, w: 3000, h: 40 },
+                    { x: 0, y: 0, w: 40, h: 3000 },
+                    { x: 2960, y: 0, w: 40, h: 3000 },
+                    // Divisórias de Quartos (Com portas)
+                    { x: 1480, y: 40, w: 40, h: 1200 }, 
+                    { x: 1480, y: 1400, w: 40, h: 1600 }, // Porta Central
+                    { x: 40, y: 1480, w: 1200, h: 40 },
+                    { x: 1400, y: 1480, w: 1600, h: 40 }
+                ],
+                furniture: [
+                    { x: 500, y: 500, w: 100, h: 150, color: '#8d6e63', name: 'Mesa' },
+                    { x: 2000, y: 2000, w: 200, h: 200, color: '#546e7a', name: 'Tapete' }
+                ]
+            },
+            camera: { x: 0, y: 0 },
+            input: {
+                joy: { active: false, dx: 0, dy: 0 },
+                keys: {}
+            },
+
+            init() {
+                this.ctx = this.canvas.getContext('2d');
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+                this.setupControls();
+                this.checkAutoLogin();
+            },
+
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            },
+
+            checkAutoLogin() {
+                const saved = localStorage.getItem('casa_acc_v2');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    document.getElementById('auto-msg').innerText = "Reconectando em " + data.nick + "...";
+                    document.getElementById('user-nick').value = data.nick;
+                    document.getElementById('user-pass').value = data.pass;
+                    setTimeout(() => this.auth.login(true), 1500);
+                }
+            },
+
+            auth: {
+                async register() {
+                    const n = document.getElementById('user-nick').value.trim().replace(/[.#$/[\]]/g, "");
+                    const p = document.getElementById('user-pass').value.trim();
+                    if (!n || !p) return alert("Preencha tudo!");
+
+                    const s = await get(ref(db, 'users/' + n));
+                    if (s.exists()) return alert("Nome já existe!");
+
+                    await set(ref(db, 'users/' + n), {
+                        pass: p,
+                        tag: '[NOVATO]',
+                        color: '#' + Math.floor(Math.random()*16777215).toString(16),
+                        created: Date.now()
+                    });
+                    alert("Conta criada com sucesso!");
+                },
+
+                async login(isAuto = false) {
+                    const n = document.getElementById('user-nick').value.trim().replace(/[.#$/[\]]/g, "");
+                    const p = document.getElementById('user-pass').value.trim();
+                    
+                    try {
+                        const s = await get(ref(db, 'users/' + n));
+                        if (s.exists() && s.val().pass === p) {
+                            localStorage.setItem('casa_acc_v2', JSON.stringify({nick: n, pass: p}));
+                            engine.start(n, s.val());
+                        } else if (!isAuto) alert("Senha ou Usuário incorretos!");
+                    } catch (e) { console.error(e); }
+                },
+
+                logout() {
+                    localStorage.removeItem('casa_acc_v2');
+                    location.reload();
+                }
+            },
+
+            start(nick, data) {
+                this.player = new Entity(nick, data);
+                document.getElementById('login-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('game-ui').style.display = 'block';
+                }, 500);
+
+                // Listeners Firebase
+                onValue(ref(db, 'online'), (snap) => {
+                    const list = snap.val() || {};
+                    this.others = {};
+                    for (let id in list) {
+                        if (id !== this.player.id) this.others[id] = new Entity(id, list[id]);
+                    }
+                });
+
+                this.chat.init();
+                
+                // Configura desconexão
+                const myRef = ref(db, 'online/' + this.player.id);
+                onDisconnect(myRef).remove();
+                
+                requestAnimationFrame((t) => this.loop(t));
+            },
+
+            chat: {
+                init() {
+                    onValue(ref(db, 'chat'), (snap) => {
+                        const content = document.getElementById('chat-content');
+                        content.innerHTML = '';
+                        const msgs = snap.val();
+                        if (!msgs) return;
+
+                        const lastMsgs = Object.values(msgs).slice(-20);
+                        lastMsgs.forEach(m => {
+                            const line = document.createElement('div');
+                            line.className = 'chat-line';
+                            line.innerHTML = `<b style="color:${m.color}">${m.nick}:</b> ${m.text}`;
+                            content.appendChild(line);
+                        });
+                        content.scrollTop = content.scrollHeight;
+
+                        // Roblox Bubble Logic
+                        const last = lastMsgs[lastMsgs.length - 1];
+                        if (last.nick === engine.player.id) engine.player.updateBubble(last.text);
+                        else if (engine.others[last.nick]) engine.others[last.nick].updateBubble(last.text);
+                    });
+
+                    document.getElementById('chat-input').addEventListener('keydown', e => {
+                        if (e.key === 'Enter') this.send();
+                    });
+                },
+
+                send() {
+                    const el = document.getElementById('chat-input');
+                    const txt = el.value.trim();
+                    if (!txt) return;
+                    push(ref(db, 'chat'), {
+                        nick: engine.player.id,
+                        text: txt,
+                        color: engine.player.color,
+                        time: Date.now()
+                    });
+                    el.value = '';
+                }
+            },
+
+            setupControls() {
+                const joy = document.getElementById('joy-base');
+                const stick = document.getElementById('joy-stick');
+
+                const moveJoy = (e) => {
+                    const touch = e.touches[0];
+                    const rect = joy.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    
+                    let dx = touch.clientX - centerX;
+                    let dy = touch.clientY - centerY;
+                    const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 50);
+                    const angle = Math.atan2(dy, dx);
+
+                    this.input.joy.dx = (Math.cos(angle) * dist) / 50;
+                    this.input.joy.dy = (Math.sin(angle) * dist) / 50;
+                    this.input.joy.active = true;
+
+                    stick.style.left = `calc(50% + ${Math.cos(angle) * dist}px)`;
+                    stick.style.top = `calc(50% + ${Math.sin(angle) * dist}px)`;
+                };
+
+                joy.addEventListener('touchstart', (e) => moveJoy(e));
+                joy.addEventListener('touchmove', (e) => moveJoy(e));
+                joy.addEventListener('touchend', () => {
+                    this.input.joy.active = false;
+                    this.input.joy.dx = 0;
+                    this.input.joy.dy = 0;
+                    stick.style.left = '50%';
+                    stick.style.top = '50%';
+                });
+
+                window.addEventListener('keydown', e => this.input.keys[e.key.toLowerCase()] = true);
+                window.addEventListener('keyup', e => this.input.keys[e.key.toLowerCase()] = false);
+            },
+
+            checkCollision(nx, ny) {
+                // Colisão com Paredes
+                for (let w of this.map.walls) {
+                    if (nx + 15 > w.x && nx - 15 < w.x + w.w && ny + 15 > w.y && ny - 15 < w.y + w.h) return true;
+                }
+                // Colisão com Móveis
+                for (let f of this.map.furniture) {
+                    if (nx + 15 > f.x && nx - 15 < f.x + f.w && ny + 15 > f.y && ny - 15 < f.y + f.h) return true;
+                }
+                return false;
+            },
+
+            update(dt) {
+                let mx = 0, my = 0;
+                const s = 5;
+
+                if (this.input.joy.active) {
+                    mx = this.input.joy.dx;
+                    my = this.input.joy.dy;
+                } else {
+                    if (this.input.keys['w']) my = -1;
+                    if (this.input.keys['s']) my = 1;
+                    if (this.input.keys['a']) mx = -1;
+                    if (this.input.keys['d']) mx = 1;
+                }
+
+                if (mx !== 0 || my !== 0) {
+                    const nextX = this.player.x + mx * s;
+                    const nextY = this.player.y + my * s;
+
+                    if (!this.checkCollision(nextX, this.player.y)) this.player.x = nextX;
+                    if (!this.checkCollision(this.player.x, nextY)) this.player.y = nextY;
+
+                    // Sync Firebase com Limite de Taxa
+                    const now = Date.now();
+                    if (!this.lastNetUpdate || now - this.lastNetUpdate > 40) {
+                        update(ref(db, 'online/' + this.player.id), {
+                            x: Math.floor(this.player.x),
+                            y: Math.floor(this.player.y),
+                            color: this.player.color,
+                            tag: this.player.tag
+                        });
+                        this.lastNetUpdate = now;
+                    }
+                }
+
+                // Câmera Suave
+                this.camera.x += (this.player.x - this.canvas.width/2 - this.camera.x) * 0.1;
+                this.camera.y += (this.player.y - this.canvas.height/2 - this.camera.y) * 0.1;
+            },
+
+            draw() {
+                const ctx = this.ctx;
+                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                ctx.save();
+                // Desenhar Chão
+                ctx.fillStyle = '#222';
+                ctx.fillRect(0,0,this.canvas.width, this.canvas.height);
+
+                ctx.translate(-this.camera.x, -this.camera.y);
+                
+                // Piso da Casa
+                ctx.fillStyle = '#34495e';
+                ctx.fillRect(0, 0, this.map.size, this.map.size);
+                
+                // Linhas de Grid
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                for(let i=0; i<this.map.size; i+=100) {
+                    ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,this.map.size); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(this.map.size,i); ctx.stroke();
+                }
+
+                // Desenhar Móveis
+                this.map.furniture.forEach(f => {
+                    ctx.fillStyle = f.color;
+                    ctx.fillRect(f.x, f.y, f.w, f.h);
+                    ctx.fillStyle = 'white'; ctx.font = '10px Arial';
+                    ctx.fillText(f.name, f.x + f.w/2, f.y + f.h/2);
+                });
+
+                // Desenhar Paredes
+                ctx.fillStyle = '#2c3e50';
+                this.map.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+
+                // Jogadores
+                Object.values(this.others).forEach(p => p.draw(ctx, {x:0, y:0}));
+                this.player.draw(ctx, {x:0, y:0});
+
+                ctx.restore();
+
+                // Efeito de Vinheta (Iluminação)
+                const grad = ctx.createRadialGradient(this.canvas.width/2, this.canvas.height/2, 100, this.canvas.width/2, this.canvas.height/2, 800);
+                grad.addColorStop(0, 'transparent');
+                grad.addColorStop(1, 'rgba(0,0,0,0.6)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0,0,this.canvas.width, this.canvas.height);
+            },
+
+            loop(t) {
+                this.update();
+                this.draw();
+                requestAnimationFrame((t) => this.loop(t));
+            }
+        };
+
+        // Inicia a Engine
+        engine.init();
+        // Exporta para o HTML
+        window.engine = engine;
+
     </script>
 </body>
-</html>
+    </html>
