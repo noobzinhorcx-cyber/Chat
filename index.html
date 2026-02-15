@@ -3,102 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Z-EMOJI ULTIMATE ONLINE (OTIMIZADO)</title>
+    <title>Z-EMOJI FIXED</title>
     <style>
         :root { --p-color: #00ff00; }
-        body { margin: 0; background: #0a0a0a; color: #eee; font-family: 'Courier New', Courier, monospace; overflow: hidden; touch-action: none; user-select: none; -webkit-font-smoothing: antialiased; }
-        
-        /* Otimização de GPU */
-        #game-world, .entity, .bullet { will-change: transform; transform: translate3d(0,0,0); backface-visibility: hidden; }
+        body { 
+            margin: 0; 
+            background: #111; 
+            color: #eee; 
+            font-family: monospace; 
+            overflow: hidden; 
+            touch-action: none; 
+            user-select: none; 
+        }
 
-        /* Telas de Menu */
-        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; transition: 0.3s; }
-        input { padding: 12px; margin: 10px; border-radius: 5px; border: 1px solid var(--p-color); background: #222; color: #fff; width: 250px; text-align: center; font-size: 16px; }
-        button { padding: 12px 25px; margin: 5px; cursor: pointer; background: var(--p-color); border: none; font-weight: bold; border-radius: 5px; width: 275px; color: #000; font-size: 16px; }
-        button:active { transform: scale(0.95); }
+        /* O MUNDO DO JOGO */
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
 
-        /* Jogo */
-        #game-world { position: absolute; width: 3000px; height: 3000px; background-image: radial-gradient(#333 1px, transparent 1px); background-size: 50px 50px; transform-origin: 0 0; }
-        
-        /* Entidades */
-        .entity { position: absolute; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 30px; top: 0; left: 0; margin-left: -20px; margin-top: -20px; }
-        .player-label { position: absolute; top: -20px; font-size: 10px; white-space: nowrap; color: #0f0; width: 100%; text-align: center; text-shadow: 1px 1px #000; }
-        
-        /* Destaque para o PRÓPRIO player */
-        .me .player-label { color: #ffff00; font-weight: bold; }
-        .me { filter: drop-shadow(0 0 5px #ffff00); z-index: 50; }
+        #game-world {
+            position: absolute;
+            width: 3000px;
+            height: 3000px;
+            /* Grid para referência visual */
+            background-image: 
+                linear-gradient(#333 1px, transparent 1px),
+                linear-gradient(90deg, #333 1px, transparent 1px);
+            background-size: 50px 50px;
+            background-color: #0a0a0a;
+            transform-origin: 0 0;
+            /* Otimização de GPU SOMENTE no container principal */
+            will-change: transform;
+            z-index: 1;
+        }
 
-        /* UI */
-        #hud { position: fixed; top: 10px; left: 10px; z-index: 100; pointer-events: none; text-shadow: 2px 2px #000; }
-        .stat-box { background: rgba(0,0,0,0.6); padding: 10px; border-left: 4px solid var(--p-color); margin-bottom: 5px; border-radius: 0 5px 5px 0; font-weight: bold; }
-        
-        /* Chat */
-        #chat-area { position: fixed; bottom: 180px; left: 20px; width: 300px; z-index: 500; pointer-events: auto; }
-        #chat-log { height: 120px; overflow-y: auto; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 5px; display: flex; flex-direction: column-reverse; font-size: 12px; }
-        #chat-input { width: 100%; box-sizing: border-box; background: rgba(50,50,50,0.8); border: 1px solid #555; padding: 8px; color: #fff; border-radius: 5px; }
+        /* ENTIDADES (Inimigos, Players) */
+        .entity {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            font-size: 30px;
+            /* Centralizar o ponto de ancoragem */
+            margin-left: -20px;
+            margin-top: -20px;
+            z-index: 10;
+            /* Transição suave de movimento */
+            transition: left 0.1s linear, top 0.1s linear; 
+        }
 
-        /* Joysticks */
-        .joy-container { position: fixed; bottom: 30px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); touch-action: none; z-index: 900; }
-        #move-joy { left: 20px; }
-        #shoot-joy { right: 20px; border-color: rgba(255,50,50,0.3); }
-        .stick { position: absolute; width: 50px; height: 50px; background: rgba(255,255,255,0.4); border-radius: 50%; top: 35px; left: 35px; pointer-events: none; transform: translate3d(0,0,0); }
+        .player-name {
+            position: absolute;
+            top: -20px;
+            left: -50%;
+            width: 200%;
+            font-size: 10px;
+            color: #0f0;
+            text-shadow: 1px 1px #000;
+        }
+
+        .me .player-name { color: #ff0; font-weight: bold; }
+        .me { z-index: 20; filter: drop-shadow(0 0 5px yellow); }
+
+        /* HUD */
+        #hud { position: fixed; top: 10px; left: 10px; z-index: 100; pointer-events: none; }
+        .stat-box { background: rgba(0,0,0,0.7); padding: 8px; border-left: 3px solid var(--p-color); margin-bottom: 5px; color: #fff; font-weight: bold; }
+
+        /* MENUS */
+        .overlay { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95); 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            z-index: 2000;
+        }
+        input, button { padding: 12px; margin: 8px; border-radius: 5px; width: 250px; font-size: 16px; }
+        button { background: var(--p-color); border: none; font-weight: bold; cursor: pointer; }
+        input { background: #333; border: 1px solid #555; color: white; text-align: center; }
+
+        /* CONTROLES */
+        .joy-area {
+            position: fixed; bottom: 40px; width: 120px; height: 120px;
+            background: rgba(255,255,255,0.1); border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.2);
+            z-index: 1000;
+        }
+        #stick-left, #stick-right {
+            position: absolute; top: 35px; left: 35px; width: 50px; height: 50px;
+            background: rgba(255,255,255,0.5); border-radius: 50%; pointer-events: none;
+        }
+        #joy-left { left: 30px; }
+        #joy-right { right: 30px; border-color: rgba(255,50,50,0.3); }
+
+        .bullet {
+            position: absolute; width: 10px; height: 10px; background: #fff; border-radius: 50%;
+            z-index: 5; pointer-events: none; margin-left: -5px; margin-top: -5px;
+        }
         
-        .bullet { position: absolute; font-size: 15px; z-index: 10; pointer-events: none; margin-left: -7px; margin-top: -7px; }
-        .xp-bar-container { position: fixed; top: 0; left: 0; width: 100%; height: 6px; background: #222; z-index: 999; }
-        #xp-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #ffcc00, #ff0000); transition: width 0.3s; }
+        #debug-info { position: fixed; top: 0; right: 0; color: lime; font-size: 10px; z-index: 3000; background: black; padding: 2px; }
     </style>
 </head>
 <body>
 
-<div class="xp-bar-container"><div id="xp-bar-fill"></div></div>
+<div id="debug-info">FPS: 60</div>
 
-<div id="menu-screen" class="overlay">
-    <h1 style="font-size: 2.5em; color: var(--p-color); text-shadow: 0 0 10px var(--p-color);">🧟 Z-EMOJI ULTIMATE</h1>
-    <input type="text" id="player-name" placeholder="Seu Apelido" maxlength="10">
-    <button onclick="initGame('public')">ENTRAR RÁPIDO</button>
-    <button onclick="showPrivateMenu()" style="background:#555">SALA PRIVADA</button>
-</div>
-
-<div id="private-menu" class="overlay" style="display:none">
-    <h2>SALA PRIVADA</h2>
-    <input type="text" id="room-code" placeholder="Código da Sala">
-    <button onclick="initGame('create-private')">CRIAR SALA</button>
-    <button onclick="initGame('join-private')">ENTRAR NA SALA</button>
-    <button onclick="backToMenu()" style="background:#444">VOLTAR</button>
-</div>
-
-<div id="lobby-screen" class="overlay" style="display:none">
-    <h2 id="lobby-status">Aguardando...</h2>
-    <div style="font-size: 40px; margin: 20px; color: #ffcc00;" id="timer-display">Wait</div>
-    <p id="room-id-tag" style="font-family: monospace; background: #333; padding: 5px;"></p>
+<div id="game-container">
+    <div id="game-world">
+        </div>
 </div>
 
 <div id="hud">
-    <div class="stat-box">
-        <div id="gun-display">👊 Soco Nv.1</div>
-        <div id="kill-display">Kills: 0</div>
-    </div>
-    <div class="stat-box">
-        <div id="hp-display">❤️❤️❤️</div>
-    </div>
+    <div class="stat-box" id="hud-weapon">👊 Soco</div>
+    <div class="stat-box" id="hud-hp">❤️❤️❤️❤️❤️</div>
+    <div class="stat-box" id="hud-kills">Kills: 0</div>
 </div>
 
-<div id="chat-area">
-    <div id="chat-log"></div>
-    <input type="text" id="chat-input" placeholder="Enter para chat...">
-</div>
+<div id="joy-left" class="joy-area"><div id="stick-left"></div></div>
+<div id="joy-right" class="joy-area"><div id="stick-right"></div></div>
 
-<div id="game-world">
-    <div id="entities-layer"></div>
+<div id="menu-screen" class="overlay">
+    <h1 style="color:var(--p-color); font-size: 3em;">Z-EMOJI</h1>
+    <input type="text" id="nickname" placeholder="Seu Nome" maxlength="10">
+    <button onclick="startGameSetup('public')">JOGAR AGORA</button>
 </div>
-
-<div id="move-joy" class="joy-container"><div class="stick" id="move-stick"></div></div>
-<div id="shoot-joy" class="joy-container"><div class="stick" id="shoot-stick"></div></div>
 
 <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-    import { getDatabase, ref, set, onValue, push, update, onDisconnect, remove, get } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+    import { getDatabase, ref, set, onValue, update, remove, onDisconnect, push, get } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
 
+    // 1. CONFIGURAÇÃO (Substitua se necessário, mas essa é pública de teste)
     const firebaseConfig = {
         apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q",
         authDomain: "chatrucoy.firebaseapp.com",
@@ -109,451 +146,348 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // --- DADOS ---
-    const WEAPONS = [
-        {n: "👊 Soco", d: 1, s: 300}, {n: "🔪 Faca", d: 2, s: 300}, {n: "🔫 Glock", d: 3, s: 500},
-        {n: "🪓 Machado", d: 5, s: 600}, {n: "🔫 Uzi", d: 2, s: 150}, {n: "🔫 Ak-47", d: 6, s: 200},
-        {n: "🏹 Arco", d: 8, s: 600}, {n: "💣 Granada", d: 25, s: 1000}, {n: "⚡ Laser", d: 5, s: 100},
-        {n: "🔱 Tridente", d: 15, s: 800}, {n: "⚔️ Katana", d: 12, s: 400}, {n: "☄️ Meteoro", d: 50, s: 2000}
-    ];
-
-    const ZOMBIE_TYPES = ["🧟", "🧟‍♂️", "🧟‍♀️", "💀", "👻", "👹", "👽", "🤖"];
-
-    // --- ESTADO ---
-    let myId = "P_" + Math.random().toString(36).substr(2, 5);
-    let roomID = "";
+    // 2. VARIÁVEIS GLOBAIS
+    const myId = "P_" + Math.random().toString(36).substr(2, 6);
+    let roomID = "GLOBAL_ROOM_V3"; // Sala única para testar rápido
     let isHost = false;
-    let gameState = 'MENU';
+    let isPlaying = false;
     
-    // Objeto do Player Local
-    let myData = {
-        x: 1500, y: 1500, hp: 5, kills: 0, 
-        weaponIdx: 0, nick: "Noob", color: "#fff",
-        vx: 0, vy: 0
+    // Estado Local
+    let player = {
+        x: 1500, y: 1500,
+        vx: 0, vy: 0,
+        hp: 5, kills: 0,
+        weapon: 0,
+        nick: "Player"
     };
-    
-    // Cache de Entidades
-    let players = {};
+
+    // Cache de Dados
+    let otherPlayers = {};
     let zombies = {};
-    let items = {};
     let bullets = [];
     
-    // Controle de Loop
-    let lastShootTime = 0;
-    let lastSyncTime = 0;
-    const SYNC_RATE = 100; // Envia dados a cada 100ms (reduz lag)
+    // Configurações de Jogo
+    const WEAPONS = [
+        {name: "👊 Soco", dmg: 1, delay: 300},
+        {name: "🔫 Glock", dmg: 2, delay: 500},
+        {name: "🔫 Uzi", dmg: 1, delay: 100},
+        {name: "💣 Bazuca", dmg: 10, delay: 1000}
+    ];
+    let lastShoot = 0;
+    let lastSync = 0;
 
-    // --- CAMERA E RENDERIZAÇÃO ---
-    const gameWorld = document.getElementById('game-world');
-    const entitiesLayer = document.getElementById('entities-layer');
+    // Referências DOM
+    const worldEl = document.getElementById('game-world');
+    const debugEl = document.getElementById('debug-info');
 
-    function updateCamera() {
-        // Centraliza usando translate3d para GPU
-        const cx = window.innerWidth / 2 - myData.x;
-        const cy = window.innerHeight / 2 - myData.y;
-        gameWorld.style.transform = `translate3d(${cx}px, ${cy}px, 0)`;
-    }
-
-    // --- LOGICA DE JOGO ---
-    window.initGame = async (mode) => {
-        const nickInput = document.getElementById('player-name').value;
-        myData.nick = nickInput ? nickInput.substring(0,10) : "Survivor";
+    // 3. INICIALIZAÇÃO
+    window.startGameSetup = (mode) => {
+        const name = document.getElementById('nickname').value || "Survivor";
+        player.nick = name;
         
-        if(mode === 'public') roomID = "PUB_v2"; 
-        else if(mode === 'create-private') roomID = "PRIV_" + Math.random().toString(36).substr(2,4).toUpperCase();
-        else roomID = document.getElementById('room-code').value.toUpperCase();
-
-        document.querySelectorAll('.overlay').forEach(e => e.style.display = 'none');
-        document.getElementById('lobby-screen').style.display = 'flex';
-        document.getElementById('room-id-tag').innerText = "SALA: " + roomID;
+        document.getElementById('menu-screen').style.display = 'none';
+        isPlaying = true;
         
-        joinFirebaseRoom();
+        // Conectar Firebase
+        connectToRoom();
+        
+        // Iniciar Loop
+        requestAnimationFrame(gameLoop);
     };
 
-    function joinFirebaseRoom() {
-        const roomRef = ref(db, `rooms/${roomID}`);
-        
+    function connectToRoom() {
+        const pRef = ref(db, `rooms/${roomID}/players/${myId}`);
+        set(pRef, { x: player.x, y: player.y, nick: player.nick, hp: player.hp });
+        onDisconnect(pRef).remove();
+
+        // Verificar Host
         get(ref(db, `rooms/${roomID}/host`)).then(snap => {
-            if(!snap.exists()) {
+            if (!snap.exists()) {
                 set(ref(db, `rooms/${roomID}/host`), myId);
                 isHost = true;
-                startLobbyTimer();
-            } else {
-                // Verificar se a partida já começou
-                get(ref(db, `rooms/${roomID}/status`)).then(s => {
-                    if(s.val() === 'STARTED') startGame();
-                });
+                setInterval(hostLoop, 1000); // Lógica de IA do Host
+                spawnZombies(10);
             }
         });
 
-        // Registrar e limpar ao sair
-        set(ref(db, `rooms/${roomID}/players/${myId}`), myData);
-        onDisconnect(ref(db, `rooms/${roomID}/players/${myId}`)).remove();
-
-        // Listeners Otimizados (apenas atualizam dados locais)
-        onValue(ref(db, `rooms/${roomID}/status`), snap => {
-            if(snap.val() === 'STARTED' && gameState !== 'PLAYING') startGame();
-        });
-
-        onValue(ref(db, `rooms/${roomID}/timer`), snap => {
-            if(gameState === 'MENU') document.getElementById('timer-display').innerText = snap.val();
-        });
-
+        // Listeners
         onValue(ref(db, `rooms/${roomID}/players`), snap => {
-            players = snap.val() || {};
-            // Não renderiza aqui, apenas atualiza dados. O loop desenha.
+            const data = snap.val() || {};
+            delete data[myId]; // Remover eu mesmo da lista de "outros"
+            otherPlayers = data;
         });
 
         onValue(ref(db, `rooms/${roomID}/zombies`), snap => {
             zombies = snap.val() || {};
         });
-
-        onValue(ref(db, `rooms/${roomID}/items`), snap => {
-            items = snap.val() || {};
-        });
-
-        onValue(ref(db, `rooms/${roomID}/chat`), snap => updateChatUI(snap.val()));
     }
 
-    function startLobbyTimer() {
-        let count = 10;
-        const itv = setInterval(() => {
-            count--;
-            update(ref(db, `rooms/${roomID}`), { timer: count });
-            if(count <= 0) {
-                clearInterval(itv);
-                set(ref(db, `rooms/${roomID}/status`), 'STARTED');
-            }
-        }, 1000);
-    }
-
-    function startGame() {
-        gameState = 'PLAYING';
-        document.getElementById('lobby-screen').style.display = 'none';
-        if(isHost) {
-            spawnInitialZombies();
-            setInterval(hostLogic, 1000); // IA roda a cada 1s
-        }
-        requestAnimationFrame(gameLoop);
-    }
-
-    // --- GAME LOOP (CORE) ---
+    // 4. LOOP PRINCIPAL (CORE)
     function gameLoop() {
-        if(gameState !== 'PLAYING') return;
+        if (!isPlaying) return;
 
-        // 1. Física Local
-        if(myData.vx !== 0 || myData.vy !== 0) {
-            myData.x += myData.vx * 6;
-            myData.y += myData.vy * 6;
-            // Limites
-            myData.x = Math.max(50, Math.min(2950, myData.x));
-            myData.y = Math.max(50, Math.min(2950, myData.y));
+        try {
+            // A. Movimento Local
+            player.x += player.vx * 5;
+            player.y += player.vy * 5;
+            
+            // Limites do Mapa
+            player.x = Math.max(20, Math.min(2980, player.x));
+            player.y = Math.max(20, Math.min(2980, player.y));
+
+            // B. Câmera (Centraliza o Mundo)
+            const cx = window.innerWidth / 2 - player.x;
+            const cy = window.innerHeight / 2 - player.y;
+            worldEl.style.transform = `translate3d(${cx}px, ${cy}px, 0)`;
+
+            // C. Sincronização (Reduzir uso de dados)
+            const now = Date.now();
+            if (now - lastSync > 100) { // 10 FPS de upload
+                update(ref(db, `rooms/${roomID}/players/${myId}`), {
+                    x: Math.round(player.x),
+                    y: Math.round(player.y)
+                });
+                lastSync = now;
+            }
+
+            // D. Balas
+            updateBullets();
+
+            // E. Renderização
+            renderAll();
+            
+            // F. Debug
+            debugEl.innerText = `X: ${Math.round(player.x)} Y: ${Math.round(player.y)} | ENT: ${Object.keys(zombies).length + Object.keys(otherPlayers).length}`;
+
+        } catch (e) {
+            console.error("Game Loop Error:", e);
         }
-
-        // 2. Sincronização com Firebase (Throttled)
-        const now = Date.now();
-        if(now - lastSyncTime > SYNC_RATE) {
-            update(ref(db, `rooms/${roomID}/players/${myId}`), {
-                x: Math.round(myData.x), 
-                y: Math.round(myData.y),
-                kills: myData.kills,
-                weaponIdx: myData.weaponIdx
-            });
-            lastSyncTime = now;
-        }
-
-        // 3. Renderização e Lógica Visual
-        updateCamera();
-        processBullets();
-        checkCollisions();
-        renderEntities(); // Desenha tudo junto
 
         requestAnimationFrame(gameLoop);
     }
 
-    // --- RENDERIZAÇÃO DOM OTIMIZADA ---
-    function renderEntities() {
-        // Render Players
-        // Incluindo o próprio jogador na lista visual
-        const allPlayers = {...players};
-        allPlayers[myId] = myData; // Garante que eu existo na renderização
+    // 5. RENDERIZAÇÃO (Bulletproof)
+    function renderAll() {
+        // Renderizar EU
+        renderEntity(myId, player, 'P', true);
 
-        renderGeneric(allPlayers, 'P');
-        renderGeneric(zombies, 'Z');
-        renderGeneric(items, 'I');
-    }
+        // Renderizar OUTROS
+        Object.keys(otherPlayers).forEach(id => {
+            renderEntity(id, otherPlayers[id], 'P', false);
+        });
 
-    function renderGeneric(dataList, prefix) {
-        // Marca elementos existentes
-        const presentIds = new Set();
+        // Renderizar ZUMBIS
+        Object.keys(zombies).forEach(id => {
+            renderEntity(id, zombies[id], 'Z', false);
+        });
 
-        Object.keys(dataList).forEach(id => {
-            presentIds.add(id);
-            let el = document.getElementById(id);
-            const entity = dataList[id];
-
-            if(!el) {
-                el = document.createElement('div');
-                el.id = id;
-                el.className = 'entity';
-                
-                if(prefix === 'P') {
-                    if(id === myId) el.classList.add('me'); // Classe especial para mim
-                    el.innerHTML = `<div class="player-label">${entity.nick}</div>👤`;
-                } else if(prefix === 'Z') {
-                    el.innerText = entity.type;
-                } else {
-                    el.innerText = entity.type;
-                    el.style.fontSize = "20px";
-                }
-                entitiesLayer.appendChild(el);
+        // Limpeza (Garbage Collection visual)
+        // Remove elementos que não estão mais nos dados
+        const allDom = document.querySelectorAll('.entity');
+        allDom.forEach(el => {
+            if (el.id !== myId && !otherPlayers[el.id] && !zombies[el.id]) {
+                el.remove();
             }
-
-            // Movimento suave via CSS transform
-            el.style.transform = `translate3d(${entity.x}px, ${entity.y}px, 0)`;
         });
-
-        // Limpeza de elementos removidos (Garbage Collection do DOM)
-        // Isso deve rodar menos frequentemente em jogos muito pesados, mas aqui ok.
-        const allInDom = document.querySelectorAll(`.entity[id^="${prefix}"]`);
-        allInDom.forEach(el => {
-            if(!presentIds.has(el.id)) el.remove();
-        });
-        
-        if(prefix === 'P') updateHUD();
     }
 
-    // --- COMBATE ---
-    function shoot(nx, ny) {
+    function renderEntity(id, data, type, isMe) {
+        let el = document.getElementById(id);
+        
+        // Criar se não existe
+        if (!el) {
+            el = document.createElement('div');
+            el.id = id;
+            el.className = 'entity';
+            if (isMe) el.classList.add('me');
+            
+            if (type === 'P') {
+                el.innerHTML = `<div class="player-name">${data.nick}</div>👤`;
+            } else {
+                el.innerText = data.type || '🧟';
+            }
+            worldEl.appendChild(el);
+        }
+
+        // Posicionar (Usando Top/Left para garantir visibilidade)
+        el.style.left = data.x + 'px';
+        el.style.top = data.y + 'px';
+    }
+
+    // 6. COMBATE E FÍSICA
+    function shoot(dx, dy) {
         const now = Date.now();
-        const weapon = WEAPONS[myData.weaponIdx];
-        if(now - lastShootTime < weapon.s) return;
-        
-        lastShootTime = now;
-        const angle = Math.atan2(ny, nx);
-        const bId = "B_" + now + "_" + Math.random().toString().substr(2,3);
-        
-        const bData = {
-            id: bId, x: myData.x, y: myData.y,
-            vx: Math.cos(angle) * 18, vy: Math.sin(angle) * 18,
-            dist: 0, maxDist: 700
+        const w = WEAPONS[player.weapon];
+        if (now - lastShoot < w.delay) return;
+        lastShoot = now;
+
+        const angle = Math.atan2(dy, dx);
+        const b = {
+            id: 'B_' + Math.random(),
+            x: player.x, y: player.y,
+            vx: Math.cos(angle) * 15, vy: Math.sin(angle) * 15,
+            life: 60
         };
-        
-        bullets.push(bData);
-        
+        bullets.push(b);
+
+        // Elemento visual da bala
         const el = document.createElement('div');
-        el.id = bId;
+        el.id = b.id;
         el.className = 'bullet';
-        el.innerText = '•';
-        el.style.color = '#fff';
-        gameWorld.appendChild(el);
+        worldEl.appendChild(el);
     }
 
-    function processBullets() {
-        for(let i = bullets.length - 1; i >= 0; i--) {
+    function updateBullets() {
+        for (let i = bullets.length - 1; i >= 0; i--) {
             const b = bullets[i];
             b.x += b.vx;
             b.y += b.vy;
-            b.dist += 18;
+            b.life--;
 
             const el = document.getElementById(b.id);
-            if(el) el.style.transform = `translate3d(${b.x}px, ${b.y}px, 0)`;
+            if (el) {
+                el.style.left = b.x + 'px';
+                el.style.top = b.y + 'px';
+            }
 
-            // Colisão com Zumbis (Client-side prediction)
-            let hit = false;
-            Object.keys(zombies).forEach(zId => {
-                if(hit) return;
-                const z = zombies[zId];
-                if(Math.abs(b.x - z.x) < 25 && Math.abs(b.y - z.y) < 25) {
-                    hitZombie(zId);
-                    hit = true;
-                }
-            });
-
-            if(hit || b.dist > b.maxDist) {
-                if(el) el.remove();
+            // Colisão Zumbi (Básico)
+            if (b.life <= 0) {
+                if (el) el.remove();
                 bullets.splice(i, 1);
+                continue;
             }
-        }
-    }
 
-    function hitZombie(zId) {
-        // Feedback visual imediato poderia ser adicionado aqui
-        const zRef = ref(db, `rooms/${roomID}/zombies/${zId}`);
-        get(zRef).then(snap => {
-            if(snap.exists()) {
-                const z = snap.val();
-                z.hp -= WEAPONS[myData.weaponIdx].d;
-                if(z.hp <= 0) {
-                    remove(zRef);
-                    myData.kills++;
-                    updateProgress();
-                    if(isHost) setTimeout(spawnZombie, 2000);
-                } else {
-                    update(zRef, { hp: z.hp });
+            // Checar colisão
+            Object.keys(zombies).forEach(zid => {
+                const z = zombies[zid];
+                const dist = Math.hypot(b.x - z.x, b.y - z.y);
+                if (dist < 30) {
+                    // Hit!
+                    if (el) el.remove();
+                    bullets.splice(i, 1); // Remove bala
+                    
+                    // Efeito visual ou lógica de dano aqui
+                    // Como cliente, apenas removemos a bala visualmente.
+                    // O Dano real idealmente seria enviado ao servidor, mas aqui fazemos direto:
+                    const zRef = ref(db, `rooms/${roomID}/zombies/${zid}`);
+                    get(zRef).then(s => {
+                         if(s.exists()) {
+                             const nhp = s.val().hp - WEAPONS[player.weapon].dmg;
+                             if(nhp <= 0) {
+                                 remove(zRef);
+                                 player.kills++;
+                                 document.getElementById('hud-kills').innerText = "Kills: " + player.kills;
+                                 checkLevelUp();
+                             } else {
+                                 update(zRef, {hp: nhp});
+                             }
+                         }
+                    });
+                    return; // Sai do loop de zumbis
                 }
-            }
-        });
-    }
-
-    function updateProgress() {
-        const nextLevel = (myData.weaponIdx + 1) * 8;
-        const pct = Math.min(100, (myData.kills % 8) / 8 * 100);
-        document.getElementById('xp-bar-fill').style.width = pct + "%";
-        document.getElementById('kill-display').innerText = `Kills: ${myData.kills}`;
-        
-        if(myData.kills >= nextLevel && myData.weaponIdx < WEAPONS.length - 1) {
-            myData.weaponIdx++;
-        }
-    }
-
-    function updateHUD() {
-        document.getElementById('hp-display').innerText = "❤️".repeat(myData.hp);
-        document.getElementById('gun-display').innerText = WEAPONS[myData.weaponIdx].n;
-    }
-
-    function checkCollisions() {
-        // Dano do Zumbi
-        Object.values(zombies).forEach(z => {
-            const dx = myData.x - z.x;
-            const dy = myData.y - z.y;
-            if(dx*dx + dy*dy < 1600) { // 40px dist squared
-                // Knockback
-                const ang = Math.atan2(dy, dx);
-                myData.x += Math.cos(ang) * 40;
-                myData.y += Math.sin(ang) * 40;
-                myData.hp--;
-                if(myData.hp <= 0) {
-                    alert("GAME OVER! Kills: " + myData.kills);
-                    location.reload();
-                }
-            }
-        });
-
-        // Itens
-        Object.keys(items).forEach(iId => {
-            const item = items[iId];
-            if(Math.abs(myData.x - item.x) < 30 && Math.abs(myData.y - item.y) < 30) {
-                if(myData.hp < 5) {
-                    myData.hp++;
-                    remove(ref(db, `rooms/${roomID}/items/${iId}`));
-                }
-            }
-        });
-    }
-
-    // --- IA HOST ---
-    function spawnInitialZombies() {
-        for(let i=0; i<20; i++) spawnZombie();
-    }
-    
-    function spawnZombie() {
-        const zId = "Z_" + Date.now() + Math.random();
-        set(ref(db, `rooms/${roomID}/zombies/${zId}`), {
-            x: Math.random() * 2800 + 100,
-            y: Math.random() * 2800 + 100,
-            type: ZOMBIE_TYPES[Math.floor(Math.random() * ZOMBIE_TYPES.length)],
-            hp: 5 + (myData.kills / 10)
-        });
-    }
-
-    function hostLogic() {
-        if(Object.keys(players).length === 0) return;
-        
-        const updates = {};
-        Object.keys(zombies).forEach(zId => {
-            const z = zombies[zId];
-            let closest = null, minDist = 9999;
-            
-            Object.values(players).forEach(p => {
-                const d = Math.hypot(p.x - z.x, p.y - z.y);
-                if(d < minDist) { minDist = d; closest = p; }
             });
+        }
+    }
 
-            if(closest && minDist < 800) {
-                const ang = Math.atan2(closest.y - z.y, closest.x - z.x);
-                updates[`rooms/${roomID}/zombies/${zId}/x`] = z.x + Math.cos(ang) * 10;
-                updates[`rooms/${roomID}/zombies/${zId}/y`] = z.y + Math.sin(ang) * 10;
+    function checkLevelUp() {
+        if(player.kills > (player.weapon+1)*5 && player.weapon < WEAPONS.length-1) {
+            player.weapon++;
+            document.getElementById('hud-weapon').innerText = WEAPONS[player.weapon].name;
+        }
+    }
+
+    // 7. LÓGICA DO HOST (IA SIMPLES)
+    function hostLoop() {
+        // Mover Zumbis
+        const updates = {};
+        let needsUpdate = false;
+        
+        Object.keys(zombies).forEach(zid => {
+            const z = zombies[zid];
+            // Perseguir player mais proximo
+            // (Simplificado: persegue o host pra economizar cálculo no exemplo)
+            const dx = player.x - z.x;
+            const dy = player.y - z.y;
+            const dist = Math.hypot(dx, dy);
+            
+            if (dist < 800 && dist > 10) {
+                const angle = Math.atan2(dy, dx);
+                z.x += Math.cos(angle) * 3;
+                z.y += Math.sin(angle) * 3;
+                updates[`rooms/${roomID}/zombies/${zid}`] = z;
+                needsUpdate = true;
             }
         });
         
-        // Spawn Cura
-        if(Math.random() > 0.95) {
-             const iId = "I_" + Date.now();
-             updates[`rooms/${roomID}/items/${iId}`] = { x: Math.random()*2800, y: Math.random()*2800, type: "💊" };
-        }
-        
-        update(ref(db), updates);
+        if(needsUpdate) update(ref(db), updates);
+
+        // Repor Zumbis
+        if (Object.keys(zombies).length < 5) spawnZombies(1);
     }
 
-    // --- CONTROLES ---
-    function setupJoy(id, stickId, cb) {
-        const box = document.getElementById(id);
+    function spawnZombies(qtd) {
+        for(let i=0; i<qtd; i++) {
+            const zid = "Z_" + Date.now() + i;
+            set(ref(db, `rooms/${roomID}/zombies/${zid}`), {
+                x: Math.random() * 2800 + 100,
+                y: Math.random() * 2800 + 100,
+                hp: 5,
+                type: "🧟"
+            });
+        }
+    }
+
+    // 8. CONTROLES (JOYSTICK)
+    function setupJoystick(areaId, stickId, callback) {
+        const area = document.getElementById(areaId);
         const stick = document.getElementById(stickId);
-        let active = false;
+        let dragging = false;
 
-        const move = (e) => {
-            if(!active) return;
+        function handleMove(e) {
+            if (!dragging) return;
             e.preventDefault();
-            const t = e.touches ? e.touches[0] : e;
-            const rect = box.getBoundingClientRect();
-            const cx = rect.left + rect.width/2;
-            const cy = rect.top + rect.height/2;
+            const touch = e.touches ? e.touches[0] : e;
+            const rect = area.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
             
-            let dx = t.clientX - cx;
-            let dy = t.clientY - cy;
+            let dx = touch.clientX - cx;
+            let dy = touch.clientY - cy;
             const dist = Math.hypot(dx, dy);
-            const max = 40;
-            
-            if(dist > max) {
-                const ratio = max/dist;
-                dx *= ratio; dy *= ratio;
+            const maxDist = 40;
+
+            if (dist > maxDist) {
+                const ratio = maxDist / dist;
+                dx *= ratio;
+                dy *= ratio;
             }
-            
-            stick.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
-            cb(dx/max, dy/max);
-        };
 
-        const end = (e) => {
-            active = false;
-            stick.style.transform = `translate3d(0,0,0)`;
-            cb(0,0);
-        };
+            stick.style.transform = `translate(${dx}px, ${dy}px)`;
+            callback(dx / maxDist, dy / maxDist);
+        }
 
-        box.addEventListener('mousedown', () => active = true);
-        box.addEventListener('touchstart', () => active = true);
-        window.addEventListener('mousemove', move);
-        window.addEventListener('touchmove', move, {passive: false});
-        window.addEventListener('mouseup', end);
-        window.addEventListener('touchend', end);
+        function endDrag() {
+            dragging = false;
+            stick.style.transform = `translate(0px, 0px)`;
+            callback(0, 0);
+        }
+
+        area.addEventListener('mousedown', () => dragging = true);
+        area.addEventListener('touchstart', () => dragging = true);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('touchmove', handleMove, { passive: false });
+        window.addEventListener('mouseup', endDrag);
+        window.addEventListener('touchend', endDrag);
     }
 
-    setupJoy('move-joy', 'move-stick', (x,y) => { myData.vx = x; myData.vy = y; });
-    setupJoy('shoot-joy', 'shoot-stick', (x,y) => { if(x||y) shoot(x,y); });
-
-    // Chat
-    const ci = document.getElementById('chat-input');
-    ci.addEventListener('keydown', e => {
-        if(e.key === 'Enter' && ci.value) {
-            push(ref(db, `rooms/${roomID}/chat`), { sender: myData.nick, msg: ci.value, color: "#fff" });
-            ci.value = "";
-        }
+    setupJoystick('joy-left', 'stick-left', (x, y) => {
+        player.vx = x;
+        player.vy = y;
     });
 
-    function updateChatUI(data) {
-        if(!data) return;
-        const log = document.getElementById('chat-log');
-        log.innerHTML = "";
-        Object.values(data).slice(-10).reverse().forEach(m => {
-            const d = document.createElement('div');
-            d.innerHTML = `<b style="color:${m.color}">${m.sender}:</b> ${m.msg}`;
-            log.appendChild(d);
-        });
-    }
-
-    // Helper Functions
-    window.showPrivateMenu = () => { document.getElementById('menu-screen').style.display = 'none'; document.getElementById('private-menu').style.display = 'flex'; };
-    window.backToMenu = () => { document.getElementById('private-menu').style.display = 'none'; document.getElementById('menu-screen').style.display = 'flex'; };
+    setupJoystick('joy-right', 'stick-right', (x, y) => {
+        if (Math.abs(x) > 0.1 || Math.abs(y) > 0.1) shoot(x, y);
+    });
 
 </script>
 </body>
