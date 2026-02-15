@@ -1,780 +1,209 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Muscle Legends Simulator 2D</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram 2.0 - Realtime</title>
     <style>
-        /* --- CSS TOOLKIT ---
-           Organização visual aprimorada com transições, animações e responsividade melhorada.
-        */
-        :root {
-            --p-red: #ff4757; --p-blue: #2f3542; --p-gold: #ffa502;
-            --p-green: #2ed573; --p-white: #ffffff; --glass: rgba(0,0,0,0.7);
-            --p-purple: #a55eea; --p-dark: #1e2124;
-        }
+        :root { --insta-blue: #0095f6; --border: #dbdbdb; --bg: #fafafa; }
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg); margin: 0; padding-top: 70px; }
+        
+        /* Nav */
+        nav { background: #fff; border-bottom: 1px solid var(--border); height: 60px; position: fixed; top: 0; width: 100%; display: flex; justify-content: center; z-index: 1000; }
+        .nav-content { width: 100%; max-width: 935px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+        .logo { font-weight: bold; font-size: 20px; color: #262626; }
 
-        body { 
-            margin: 0; padding: 0; overflow: hidden; 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: var(--p-dark); color: white; touch-action: none; 
-        }
+        /* Container Principal */
+        .main-container { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; padding: 0 10px; }
 
-        canvas { display: block; filter: saturate(1.2); image-rendering: pixelated; }
+        /* Stories */
+        .stories-bar { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 15px; display: flex; gap: 15px; overflow-x: auto; }
+        .story-item { text-align: center; font-size: 11px; min-width: 65px; }
+        .story-ring { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); padding: 2px; margin-bottom: 5px; }
+        .story-ring img { width: 100%; height: 100%; border-radius: 50%; border: 2px solid white; object-fit: cover; }
 
-        /* INTERFACE DE LOGIN APRIMORADA */
-        #login-overlay {
-            position: fixed; inset: 0; background: radial-gradient(circle, var(--p-blue), #000);
-            display: flex; justify-content: center; align-items: center; z-index: 10000;
-            transition: opacity 0.5s ease-out;
-        }
-        .login-box {
-            background: var(--glass); padding: 40px; border-radius: 30px;
-            border: 4px solid var(--p-red); text-align: center; width: 320px;
-            box-shadow: 0 0 50px rgba(255, 71, 87, 0.3);
-            animation: fadeIn 1s ease-in;
-        }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        .login-box h1 { font-size: 28px; margin-bottom: 20px; letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-        input {
-            width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px;
-            border: none; background: #eee; font-size: 16px; box-sizing: border-box;
-            transition: box-shadow 0.3s;
-        }
-        input:focus { box-shadow: 0 0 10px var(--p-red); }
-        .btn-play {
-            width: 100%; padding: 15px; background: var(--p-red); color: white;
-            border: none; border-radius: 12px; font-weight: bold; font-size: 18px;
-            cursor: pointer; margin-top: 10px; transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .btn-play:hover { transform: scale(1.05); box-shadow: 0 0 20px var(--p-red); }
+        /* Sugestões de Seguidores */
+        .suggestions { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 15px; }
+        .user-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .btn-follow { background: var(--insta-blue); color: white; border: none; border-radius: 4px; padding: 5px 10px; font-weight: 600; cursor: pointer; font-size: 12px; }
 
-        /* HUD PRINCIPAL APRIMORADO */
-        #game-hud { display: none; position: fixed; inset: 0; pointer-events: none; }
-        .top-stats {
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 15px; pointer-events: auto;
-        }
-        .stat-card {
-            background: var(--glass); padding: 10px 25px; border-radius: 15px;
-            border-bottom: 5px solid var(--p-red); min-width: 120px; text-align: center;
-            transition: transform 0.2s;
-        }
-        .stat-card:hover { transform: scale(1.05); }
-        .stat-card.gold { border-color: var(--p-gold); }
-        .stat-card.purple { border-color: var(--p-purple); }
-        .label { font-size: 10px; color: #aaa; text-transform: uppercase; display: block; }
-        .value { font-size: 20px; font-weight: bold; }
+        /* Post Card */
+        .post-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        .post-header { padding: 12px; font-weight: 600; font-size: 14px; }
+        .post-img { width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #eee; }
+        .post-footer { padding: 12px; }
 
-        /* LEADERBOARD (RANKING) APRIMORADO */
-        #leaderboard {
-            position: absolute; top: 20px; right: 20px; width: 220px;
-            background: var(--glass); border-radius: 15px; padding: 15px;
-            pointer-events: auto; font-size: 12px; overflow-y: auto; max-height: 300px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
-        .rank-item { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px solid #444; padding: 5px; }
-        .rank-item:hover { background: rgba(255,255,255,0.1); }
+        /* Chat (Direct) */
+        #chat-window { position: fixed; bottom: 20px; right: 20px; width: 300px; height: 400px; background: #fff; border: 1px solid var(--border); border-radius: 12px; display: none; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .chat-header { padding: 10px; border-bottom: 1px solid var(--border); font-weight: bold; display: flex; justify-content: space-between; }
+        .chat-msgs { flex: 1; overflow-y: auto; padding: 10px; font-size: 13px; }
+        .chat-input { display: flex; border-top: 1px solid var(--border); }
+        .chat-input input { flex: 1; border: none; padding: 12px; outline: none; }
 
-        /* BOTÃO TREINAR GIGANTE COM ANIMAÇÃO */
-        #train-trigger {
-            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-            width: 120px; height: 120px; background: var(--p-red); border: 6px solid white;
-            border-radius: 50%; pointer-events: auto; cursor: pointer;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5); transition: transform 0.1s;
-            display: flex; justify-content: center; align-items: center; font-size: 40px;
-        }
-        #train-trigger:active { transform: translateX(-50%) scale(0.9); animation: pulse 0.5s; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 var(--p-red); } 100% { box-shadow: 0 0 0 20px rgba(255,71,87,0); } }
-
-        /* SHOP / PETS / REBIRTH / NOVA OPÇÃO: ARENAS */
-        .side-menu {
-            position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
-            display: flex; flex-direction: column; gap: 15px; pointer-events: auto;
-        }
-        .menu-btn {
-            width: 60px; height: 60px; border-radius: 15px; background: white;
-            display: flex; justify-content: center; align-items: center;
-            font-size: 24px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            transition: transform 0.2s, background 0.2s;
-        }
-        .menu-btn:hover { transform: scale(1.1); background: var(--p-gold); color: black; }
-
-        /* CHAT APRIMORADO */
-        #chat-container {
-            position: absolute; bottom: 20px; left: 20px; width: 300px;
-            background: var(--glass); border-radius: 15px; padding: 10px; pointer-events: auto;
-        }
-        #chat-logs { height: 150px; overflow-y: auto; font-size: 13px; margin-bottom: 8px; scrollbar-width: thin; }
-        #chat-logs::-webkit-scrollbar { width: 5px; background: #333; }
-        #chat-logs::-webkit-scrollbar-thumb { background: var(--p-red); }
-        #chat-input {
-            width: 100%; background: rgba(255,255,255,0.1); border: 1px solid #555;
-            color: white; padding: 8px; border-radius: 8px; outline: none; box-sizing: border-box;
-            transition: border-color 0.3s;
-        }
-        #chat-input:focus { border-color: var(--p-red); }
-
-        /* NOTIFICAÇÃO APRIMORADA */
-        #notif {
-            position: absolute; top: 100px; left: 50%; transform: translateX(-50%);
-            background: var(--p-gold); color: black; padding: 10px 20px;
-            border-radius: 20px; font-weight: bold; display: none; z-index: 1000;
-            animation: notifyIn 0.5s ease-in-out forwards;
-        }
-        @keyframes notifyIn { from { opacity: 0; transform: translate(-50%, -20px); } to { opacity: 1; transform: translateX(-50%); } }
-
-        /* MODAL PARA LOJA, PETS, ETC. */
-        .modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none;
-            justify-content: center; align-items: center; z-index: 5000;
-        }
-        .modal-box {
-            background: var(--glass); padding: 30px; border-radius: 20px;
-            border: 3px solid var(--p-green); width: 400px; text-align: center;
-        }
-        .modal-btn { padding: 10px 20px; background: var(--p-green); color: white; border: none; border-radius: 10px; cursor: pointer; margin: 10px; }
+        /* Botões */
+        .action-btn { background: none; border: none; cursor: pointer; font-size: 18px; }
     </style>
 </head>
 <body>
 
-    <div id="notif">MENSAGEM DO SISTEMA</div>
-
-    <div id="login-overlay">
-        <div class="login-box">
-            <h1>💪 MUSCLE LEGENDS 2D</h1>
-            <p style="color: #aaa; font-size: 12px;">TREINE • CRESÇA • DOMINE • BATALHE</p>
-            <input type="text" id="user-name" placeholder="Nome do Atleta" maxlength="12">
-            <button class="btn-play" onclick="core.auth()">ENTRAR NA ACADEMIA</button>
-        </div>
-    </div>
-
-    <canvas id="stage"></canvas>
-
-    <div id="game-hud">
-        <div class="top-stats">
-            <div class="stat-card">
-                <span class="label">Força</span>
-                <span class="value" id="hud-str">0</span>
-            </div>
-            <div class="stat-card gold">
-                <span class="label">Rebirths</span>
-                <span class="value" id="hud-rb">0</span>
-            </div>
-            <div class="stat-card purple">
-                <span class="label">Gemas</span>
-                <span class="value" id="hud-gems">0</span>
+    <nav>
+        <div class="nav-content">
+            <div class="logo" id="my-name">Instagram 2</div>
+            <div>
+                <button class="action-btn" onclick="document.getElementById('chat-window').style.display='flex'">✉️</button>
+                <button class="action-btn" onclick="addStory()">📸</button>
+                <button class="action-btn" onclick="createPost()">➕</button>
             </div>
         </div>
+    </nav>
 
-        <div id="leaderboard">
-            <div style="text-align: center; border-bottom: 2px solid var(--p-red); margin-bottom: 10px; font-weight: bold;">🏆 RANKING</div>
-            <div id="rank-list"></div>
+    <div class="main-container">
+        <div class="stories-bar" id="stories-list"></div>
+
+        <div class="suggestions" id="user-suggestions">
+            <div style="font-weight: 600; color: #8e8e8e; margin-bottom: 10px; font-size: 14px;">Sugestões para você</div>
+            <div id="users-list"></div>
         </div>
 
-        <div class="side-menu">
-            <div class="menu-btn" onclick="core.logic.rebirth()" title="Rebirth">♻️</div>
-            <div class="menu-btn" onclick="core.logic.openPets()" title="Pets">🥚</div>
-            <div class="menu-btn" style="background: var(--p-green); color: white;" onclick="core.logic.openShop()" title="Loja">🛒</div>
-            <div class="menu-btn" style="background: var(--p-purple); color: white;" onclick="core.logic.openArena()" title="Arena">⚔️</div>
-            <div class="menu-btn" style="background: var(--p-red); color: white;" onclick="core.logic.openAdmin()" title="Admin">🔑</div>
-        </div>
-
-        <div id="chat-container">
-            <div id="chat-logs"></div>
-            <input type="text" id="chat-input" placeholder="Aperte Enter para falar...">
-        </div>
-
-        <div id="train-trigger" onclick="core.logic.train()">🏋️</div>
+        <div id="feed"></div>
     </div>
 
-    <!-- MODALS -->
-    <div id="pets-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h2>Pets</h2>
-            <p>Role um pet por 500 força!</p>
-            <button class="modal-btn" onclick="core.logic.rollPet()">Rolar Pet</button>
-            <button class="modal-btn" onclick="core.ui.closeModal('pets')">Fechar</button>
-        </div>
-    </div>
-
-    <div id="shop-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h2>Loja</h2>
-            <p>Compre itens com gemas!</p>
-            <div id="shop-items">
-                <!-- Itens dinâmicos -->
-            </div>
-            <button class="modal-btn" onclick="core.ui.closeModal('shop')">Fechar</button>
-        </div>
-    </div>
-
-    <div id="arena-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h2>Arena</h2>
-            <p>Desafie jogadores para batalhas!</p>
-            <div id="arena-players">
-                <!-- Jogadores online -->
-            </div>
-            <button class="modal-btn" onclick="core.ui.closeModal('arena')">Fechar</button>
-        </div>
-    </div>
-
-    <div id="admin-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h2>Admin Login</h2>
-            <input type="password" id="admin-code" placeholder="Código Admin">
-            <button class="modal-btn" onclick="core.logic.adminLogin()">Entrar</button>
-            <button class="modal-btn" onclick="core.ui.closeModal('admin')">Fechar</button>
-        </div>
-    </div>
-
-    <div id="admin-panel" class="modal-overlay" style="display: none;">
-        <div class="modal-box" style="width: 600px;">
-            <h2>Painel Admin</h2>
-            <div id="admin-players"></div>
-            <button class="modal-btn" onclick="core.ui.closeModal('admin-panel')">Fechar</button>
+    <div id="chat-window">
+        <div class="chat-header">Direct <span onclick="this.parentElement.parentElement.style.display='none'" style="cursor:pointer">×</span></div>
+        <div class="chat-msgs" id="chat-msgs"></div>
+        <div class="chat-input">
+            <input type="text" id="msg-input" placeholder="Mensagem...">
+            <button onclick="sendMsg()" style="border:none; background:none; color:var(--insta-blue); font-weight:bold; padding:10px;">Enviar</button>
         </div>
     </div>
 
     <script type="module">
-        /* --- MOTOR DO JOGO (ENGINE) APRIMORADO ---
-           Modificações: Multiplicadores de pets ajustados e corrigidos, movimento corrigido, rebirth dá 5x por level, pets dão mult baseado em raridade, áreas de treino (zones) dobram gain, admin code, gemas compradas com 500 str, gastos deduzidos, rank com k format, batalha com colisão na arena zone (trocar murro).
-        */
-
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-        import { getDatabase, ref, set, onValue, push, update, onDisconnect, get, remove } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+        import { getDatabase, ref, onValue, set, push, get, update, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
 
-        const fbConfig = {
+        const firebaseConfig = {
             apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q",
-            authDomain: "chatrucoy.firebaseapp.com",
             databaseURL: "https://chatrucoy-default-rtdb.firebaseio.com",
             projectId: "chatrucoy"
         };
 
-        const app = initializeApp(fbConfig);
+        const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+        let meuIp = "", meuUser = "";
 
-        // CONFIGURAÇÕES DO MUNDO EXPANDIDAS COM MAIS ZONAS
-        const WORLD = {
-            size: 17500, // Aumentado para arena
-            zones: [
-                { name: "Área Inicial", color: "#2f3542", req: 0, mult: 1, x: 0, y: 0, w: 2500, h: 17500, pvp: false },
-                { name: "Área Pro (10k+)", color: "#1e272e", req: 10000, mult: 2, x: 2500, y: 0, w: 2500, h: 17500, pvp: false },
-                { name: "Área Elite (100k+)", color: "#0a3d62", req: 100000, mult: 4, x: 5000, y: 0, w: 2500, h: 17500, pvp: false },
-                { name: "Área Lendária (1M+)", color: "#3B1F2B", req: 1000000, mult: 8, x: 7500, y: 0, w: 2500, h: 17500, pvp: false },
-                { name: "Área Mítica (10M+)", color: "#6A1B9A", req: 10000000, mult: 16, x: 10000, y: 0, w: 2500, h: 17500, pvp: false },
-                { name: "Área Divina (100M+)", color: "#FFD700", req: 100000000, mult: 32, x: 12500, y: 0, w: 2500, h: 17500, pvp: false },
-                { name: "Arena PVP", color: "#FF0000", req: 0, mult: 1, x: 15000, y: 0, w: 2500, h: 17500, pvp: true }
-            ],
-            petList: [
-                { name: "Cachorro", mult: 2, chance: 50, color: "#d2dae2" },
-                { name: "Robô", mult: 5, chance: 30, color: "#485e74" },
-                { name: "Fênix", mult: 10, chance: 15, color: "#ff4757" },
-                { name: "Gemini", mult: 50, chance: 4, color: "#ffa502" },
-                { name: "Dragão", mult: 100, chance: 1, color: "#a55eea" }
-            ],
-            shopItems: [
-                { name: "Boost x2 (1h)", cost: 100, effect: () => { core.player.boost = 2; setTimeout(() => core.player.boost = 1, 3600000); } },
-                { name: "Gemas Extra +50", cost: 50, effect: () => core.player.gems += 50 },
-                { name: "Pet Raro Garantido", cost: 200, effect: () => core.logic.rollPet(true) },
-                { name: "Comprar 1 Gema", cost: 0, strCost: 500, effect: () => { core.player.str -= 500; core.player.gems += 1; } }
-            ],
-            adminCode: "admin123" // Código fixo para admin
-        };
+        // --- 1. LOGIN AUTOMÁTICO POR IP ---
+        async function autoLogin() {
+            const resp = await fetch('https://api.ipify.org?format=json');
+            const data = await resp.json();
+            meuIp = data.ip.replace(/\./g, '_');
 
-        class Particle {
-            constructor(x, y, color, vxRange = 10, vyRange = 10, life = 1.0) {
-                this.x = x; this.y = y;
-                this.vx = (Math.random() - 0.5) * vxRange;
-                this.vy = (Math.random() - 0.5) * vyRange;
-                this.life = life;
-                this.color = color;
-                this.size = Math.random() * 4 + 2;
+            const userRef = ref(db, `users/${meuIp}`);
+            const snap = await get(userRef);
+
+            if (!snap.exists()) {
+                meuUser = "User_" + Math.floor(Math.random() * 999);
+                await set(userRef, { username: meuUser, ip: data.ip });
+            } else {
+                meuUser = snap.val().username;
             }
-            update(delta) { 
-                this.x += this.vx * delta; 
-                this.y += this.vy * delta; 
-                this.life -= 0.05 * delta; 
-            }
-            draw(ctx, camX, camY) {
-                ctx.globalAlpha = this.life;
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x - camX, this.y - camY, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
+            document.getElementById('my-name').innerText = `Insta2 (${meuUser})`;
+            listenToRequests();
+            loadSuggestions();
         }
 
-        class SoundManager {
-            constructor() {
-                this.sounds = {
-                    train: new Audio('https://example.com/train-sound.mp3'), // Substitua por URLs reais de sons
-                    rebirth: new Audio('https://example.com/rebirth-sound.mp3'),
-                    roll: new Audio('https://example.com/roll-sound.mp3'),
-                    battle: new Audio('https://example.com/battle-sound.mp3')
-                };
-            }
-            play(key) {
-                if (this.sounds[key]) this.sounds[key].play();
-            }
-        }
-
-        const core = {
-            canvas: document.getElementById('stage'),
-            ctx: null,
-            player: {
-                nick: '', str: 0, rb: 0, gems: 0, x: 1250, y: 8750, 
-                size: 25, pet: null, petMult: 1, boost: 1, lastSync: 0, lastTrain: 0, lastBattle: 0, admin: false
-            },
-            others: {},
-            particles: [],
-            camera: { x: 0, y: 0 },
-            keys: {},
-            sounds: new SoundManager(),
-            lastTime: performance.now(),
-
-            async auth() {
-                const name = document.getElementById('user-name').value.trim();
-                if (!name || name.length < 3) return alert("Nome deve ter pelo menos 3 caracteres!");
-                
-                this.player.nick = name;
-                const snapshot = await get(ref(db, `users/${name}`));
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    this.player.str = data.str || 0;
-                    this.player.rb = data.rb || 0;
-                    this.player.gems = data.gems || 0;
-                    this.player.pet = data.pet || null;
-                    this.player.petMult = data.petMult || 1;
-                    this.player.boost = data.boost || 1;
-                } else {
-                    await set(ref(db, `users/${name}`), { str: 0, rb: 0, gems: 0, pet: null, petMult: 1, boost: 1 });
-                }
-                
-                this.start();
-            },
-
-            start() {
-                this.ctx = this.canvas.getContext('2d');
-                const login = document.getElementById('login-overlay');
-                login.style.opacity = 0;
-                setTimeout(() => login.style.display = 'none', 500);
-                document.getElementById('game-hud').style.display = 'block';
-                
-                this.resize();
-                window.addEventListener('resize', () => this.resize());
-
-                window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
-                window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
-                document.getElementById('chat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') this.logic.sendChat(); });
-
-                onValue(ref(db, 'sim/online'), snap => { this.others = snap.val() || {}; this.ui.updateRanking(this.others); });
-                onValue(ref(db, 'sim/chat'), snap => this.ui.updateChat(snap.val()));
-                onDisconnect(ref(db, `sim/online/${this.player.nick}`)).remove();
-
-                setInterval(() => this.logic.cleanChat(), 60000);
-
-                this.loop();
-            },
-
-            resize() {
-                this.canvas.width = window.innerWidth;
-                this.canvas.height = window.innerHeight;
-            },
-
-            getCurrentZone() {
-                return WORLD.zones.find(z => this.player.x >= z.x && this.player.x < z.x + z.w) || WORLD.zones[0];
-            },
-
-            logic: {
-                train() {
-                    const now = Date.now();
-                    if (now - core.player.lastTrain < 200) return;
-                    core.player.lastTrain = now;
-
-                    const currentZone = core.getCurrentZone();
-                    const baseGain = 1 * Math.pow(5, core.player.rb) * core.player.petMult * core.player.boost * currentZone.mult;
-                    core.player.str += baseGain;
-                    core.player.size = 25 + (Math.log10(core.player.str + 1) * 20);
-                    
-                    for (let i = 0; i < 12; i++) core.particles.push(new Particle(core.player.x, core.player.y, '#ff4757'));
-                    
-                    core.sounds.play('train');
-                    core.ui.refresh();
-                    core.network.sync(true);
-                },
-
-                rebirth() {
-                    const req = (core.player.rb + 1) * 10000;
-                    if (core.player.str < req) return core.ui.notify(`Precisa de ${req.toLocaleString()} de força!`);
-                    
-                    core.player.str = 0;
-                    core.player.rb += 1;
-                    core.player.size = 25;
-                    core.player.gems += core.player.rb * 10;
-                    core.ui.notify("REBIRTH REALIZADO! x5 Ganho extra.");
-                    core.sounds.play('rebirth');
-                    core.ui.refresh();
-                    core.network.save();
-                    core.network.sync(true);
-                },
-
-                rollPet(guaranteedRare = false) {
-                    if (core.player.str < 500) return core.ui.notify("Precisa de 500 força para roletar!");
-                    core.player.str -= 500;
-                    
-                    const rand = Math.random() * 100;
-                    let accum = 0;
-                    let won = WORLD.petList[0];
-                    const list = guaranteedRare ? WORLD.petList.slice(2) : WORLD.petList;
-
-                    for (let p of list) {
-                        accum += p.chance;
-                        if (rand <= accum) { won = p; break; }
-                    }
-
-                    core.player.pet = won.name;
-                    core.player.petMult = won.mult;
-                    core.ui.notify(`Você ganhou um ${won.name}! (x${won.mult})`);
-                    core.sounds.play('roll');
-                    core.network.save();
-                    core.network.sync(true);
-                },
-
-                sendChat() {
-                    const input = document.getElementById('chat-input');
-                    const txt = input.value.trim();
-                    if (!txt || txt.length > 100) return;
-                    push(ref(db, 'sim/chat'), { n: core.player.nick, t: txt, time: Date.now() });
-                    input.value = '';
-                },
-
-                cleanChat() {
-                    get(ref(db, 'sim/chat')).then(snap => {
-                        if (snap.exists()) {
-                            const chats = snap.val();
-                            const now = Date.now();
-                            Object.entries(chats).forEach(([key, msg]) => {
-                                if (now - msg.time > 86400000) remove(ref(db, `sim/chat/${key}`));
-                            });
-                        }
-                    });
-                },
-
-                openPets() {
-                    document.getElementById('pets-modal').style.display = 'flex';
-                },
-
-                openShop() {
-                    const itemsDiv = document.getElementById('shop-items');
-                    itemsDiv.innerHTML = '';
-                    WORLD.shopItems.forEach((item, i) => {
-                        const btn = document.createElement('button');
-                        btn.className = 'modal-btn';
-                        btn.innerText = `${item.name} ${item.strCost ? `- ${item.strCost} Força` : `- ${item.cost} Gemas`}`;
-                        btn.onclick = () => {
-                            if (item.strCost) {
-                                if (core.player.str >= item.strCost) {
-                                    item.effect();
-                                    core.ui.notify(`${item.name} comprado!`);
-                                    core.ui.refresh();
-                                    core.network.save();
-                                } else {
-                                    core.ui.notify("Força insuficiente!");
-                                }
-                            } else if (core.player.gems >= item.cost) {
-                                item.effect();
-                                core.ui.notify(`${item.name} comprado!`);
-                                core.ui.refresh();
-                                core.network.save();
-                            } else {
-                                core.ui.notify("Gemas insuficientes!");
-                            }
-                        };
-                        itemsDiv.appendChild(btn);
-                    });
-                    document.getElementById('shop-modal').style.display = 'flex';
-                },
-
-                openArena() {
-                    const playersDiv = document.getElementById('arena-players');
-                    playersDiv.innerHTML = '';
-                    Object.entries(core.others).forEach(([nick, data]) => {
-                        if (nick !== core.player.nick) {
-                            const btn = document.createElement('button');
-                            btn.className = 'modal-btn';
-                            btn.innerText = `Desafiar ${nick} (Força: ${Math.floor(data.s).toLocaleString()})`;
-                            btn.onclick = () => core.logic.battle(nick, data);
-                            playersDiv.appendChild(btn);
-                        }
-                    });
-                    document.getElementById('arena-modal').style.display = 'flex';
-                },
-
-                battle(targetNick, targetData) {
-                    if (Math.abs(core.player.str - targetData.s) > core.player.str * 0.5) return core.ui.notify("Diferença de força muito grande!");
-                    const playerWinChance = core.player.str / (core.player.str + targetData.s);
-                    if (Math.random() < playerWinChance) {
-                        core.player.gems += 20;
-                        core.ui.notify(`Você venceu ${targetNick}! +20 Gemas.`);
-                    } else {
-                        core.player.gems = Math.max(0, core.player.gems - 10);
-                        core.ui.notify(`Você perdeu para ${targetNick}! -10 Gemas.`);
-                    }
-                    core.sounds.play('battle');
-                    core.ui.refresh();
-                    core.network.save();
-                    core.ui.closeModal('arena');
-                },
-
-                checkCollisions() {
-                    const now = Date.now();
-                    if (now - core.player.lastBattle < 1000) return;
-                    const currentZone = core.getCurrentZone();
-                    if (!currentZone.pvp) return;
-
-                    for (let id in core.others) {
-                        const o = core.others[id];
-                        const dx = core.player.x - o.x;
-                        const dy = core.player.y - o.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        if (dist < core.player.size + o.z) {
-                            core.player.lastBattle = now;
-                            core.logic.battle(id, o);
-                            // Empurrar para longe
-                            core.player.x += dx / dist * 50;
-                            core.player.y += dy / dist * 50;
-                            core.network.sync(true);
-                            break;
-                        }
-                    }
-                },
-
-                openAdmin() {
-                    document.getElementById('admin-modal').style.display = 'flex';
-                },
-
-                adminLogin() {
-                    const code = document.getElementById('admin-code').value;
-                    if (code === WORLD.adminCode) {
-                        core.player.admin = true;
-                        core.ui.closeModal('admin');
-                        core.logic.openAdminPanel();
-                    } else {
-                        core.ui.notify("Código incorreto!");
-                    }
-                },
-
-                openAdminPanel() {
-                    const panel = document.getElementById('admin-panel');
-                    const playersDiv = document.getElementById('admin-players');
-                    playersDiv.innerHTML = '';
-                    Object.entries(core.others).forEach(([nick, data]) => {
-                        const div = document.createElement('div');
-                        div.innerHTML = `
-                            <p>${nick} - Força: <input id="str-${nick}" value="${data.s}" type="number"> 
-                            Rebirths: <input id="rb-${nick}" value="${data.r}" type="number">
-                            Mult: <input id="mult-${nick}" value="1" type="number"></p>
-                            <button onclick="core.logic.updatePlayer('${nick}')">Atualizar</button>
-                        `;
-                        playersDiv.appendChild(div);
-                    });
-                    panel.style.display = 'flex';
-                },
-
-                async updatePlayer(nick) {
-                    const str = parseFloat(document.getElementById(`str-${nick}`).value);
-                    const rb = parseInt(document.getElementById(`rb-${nick}`).value);
-                    const mult = parseFloat(document.getElementById(`mult-${nick}`).value);
-                    await update(ref(db, `users/${nick}`), { str, rb });
-                    await update(ref(db, `sim/online/${nick}`), { s: str, r: rb });
-                    // Para mult, talvez salvar como boost extra, mas por agora ignora mult custom
-                    core.ui.notify(`${nick} atualizado!`);
-                }
-            },
-
-            network: {
-                sync(force = false) {
-                    const now = Date.now();
-                    if (force || now - core.player.lastSync > 1000) {
-                        update(ref(db, `sim/online/${core.player.nick}`), {
-                            x: Math.round(core.player.x),
-                            y: Math.round(core.player.y),
-                            s: Math.floor(core.player.str),
-                            z: Math.floor(core.player.size),
-                            r: core.player.rb,
-                            p: core.player.pet
-                        });
-                        core.player.lastSync = now;
-                    }
-                },
-                save() {
-                    set(ref(db, `users/${core.player.nick}`), {
-                        str: core.player.str,
-                        rb: core.player.rb,
-                        gems: core.player.gems,
-                        pet: core.player.pet,
-                        petMult: core.player.petMult,
-                        boost: core.player.boost
-                    });
-                }
-            },
-
-            ui: {
-                refresh() {
-                    document.getElementById('hud-str').innerText = Math.floor(core.player.str).toLocaleString();
-                    document.getElementById('hud-rb').innerText = core.player.rb;
-                    document.getElementById('hud-gems').innerText = core.player.gems;
-                },
-                notify(msg) {
-                    const n = document.getElementById('notif');
-                    n.innerText = msg; n.style.display = 'block';
-                    setTimeout(() => n.style.display = 'none', 3000);
-                },
-                updateChat(data) {
-                    const logs = document.getElementById('chat-logs');
-                    logs.innerHTML = '';
-                    if (!data) return;
-                    Object.values(data).sort((a, b) => a.time - b.time).slice(-20).forEach(m => {
-                        const div = document.createElement('div');
-                        div.innerHTML = `<b style="color:var(--p-red)">${m.n}:</b> ${m.t}`;
-                        logs.appendChild(div);
-                    });
-                    logs.scrollTop = logs.scrollHeight;
-                },
-                updateRanking(players) {
-                    const list = document.getElementById('rank-list');
-                    list.innerHTML = '';
-                    const sorted = Object.entries(players || {})
-                        .sort((a, b) => b[1].s - a[1].s)
-                        .slice(0, 10);
-                    
-                    sorted.forEach(([id, data], i) => {
-                        const abbr = data.s >= 1000 ? (data.s / 1000).toFixed(1) + 'k' : data.s;
-                        list.innerHTML += `<div class="rank-item"><span>${i+1}. ${id}</span><b>${abbr}</b></div>`;
-                    });
-                },
-                closeModal(type) {
-                    document.getElementById(`${type}-modal`).style.display = 'none';
-                }
-            },
-
-            render: {
-                drawZone(z, ctx, camX, camY) {
-                    ctx.fillStyle = z.color;
-                    ctx.fillRect(z.x - camX, z.y - camY, z.w, z.h);
-                    
-                    ctx.fillStyle = "rgba(255,255,255,0.05)";
-                    ctx.font = "bold 100px Arial";
-                    ctx.textAlign = "center";
-                    ctx.fillText(z.name, z.x - camX + z.w/2, z.y - camY + 200);
-                },
-
-                drawPlayer(x, y, size, name, rb, pet, isMe, ctx, camX, camY) {
-                    x -= camX; y -= camY;
-
-                    ctx.shadowBlur = size / 2;
-                    ctx.shadowColor = isMe ? 'rgba(255,71,87,0.5)' : 'rgba(0,0,0,0.3)';
-
-                    if (rb > 0) {
-                        const gradient = ctx.createRadialGradient(x, y, size, x, y, size + 10);
-                        gradient.addColorStop(0, 'transparent');
-                        gradient.addColorStop(1, '#ffa502');
-                        ctx.fillStyle = gradient;
-                        ctx.beginPath(); ctx.arc(x, y, size + 10, 0, Math.PI*2); ctx.fill();
-                    }
-
-                    ctx.shadowBlur = 0;
-                    ctx.fillStyle = isMe ? '#ff4757' : '#54a0ff';
-                    ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI*2); ctx.fill();
-
-                    if (Math.random() < 0.98) {
-                        ctx.fillStyle = "white";
-                        ctx.beginPath(); ctx.arc(x - size/3, y - size/4, size/5, 0, Math.PI*2); ctx.fill();
-                        ctx.beginPath(); ctx.arc(x + size/3, y - size/4, size/5, 0, Math.PI*2); ctx.fill();
-                    }
-
-                    if (pet) {
-                        const petX = x + Math.sin(Date.now() / 500) * 10;
-                        const petY = y + size + 20 + Math.cos(Date.now() / 500) * 5;
-                        ctx.fillStyle = "white"; ctx.font = "14px Arial";
-                        ctx.fillText(`🐾 ${pet}`, petX, petY);
-                    }
-
-                    ctx.fillStyle = "white";
-                    ctx.font = `bold ${Math.max(12, size/2.5)}px Arial`;
-                    ctx.textAlign = "center";
-                    ctx.shadowColor = 'black'; ctx.shadowBlur = 2;
-                    ctx.fillText(name, x, y - size - 15);
-                    ctx.shadowBlur = 0;
-                }
-            },
-
-            loop() {
-                const now = performance.now();
-                const delta = (now - core.lastTime) / 1000;
-                core.lastTime = now;
-
-                const ctx = core.ctx;
-                const p = core.player;
-
-                const speed = Math.max(2, 10 - (p.size / 50));
-                let moved = false;
-                if (core.keys['w'] || core.keys['arrowup']) { p.y -= speed; moved = true; }
-                if (core.keys['s'] || core.keys['arrowdown']) { p.y += speed; moved = true; }
-                if (core.keys['a'] || core.keys['arrowleft']) { p.x -= speed; moved = true; }
-                if (core.keys['d'] || core.keys['arrowright']) { p.x += speed; moved = true; }
-
-                WORLD.zones.forEach((z, i) => {
-                    if (i > 0 && p.x >= z.x && p.str < z.req) {
-                        p.x = z.x - 10;
-                        core.ui.notify(`${z.name}: Precisa de ${z.req.toLocaleString()} de força!`);
-                    }
-                });
-
-                p.x = Math.clamp(p.x, 0, WORLD.size);
-                p.y = Math.clamp(p.y, 0, WORLD.size);
-
-                if (moved) core.network.sync();
-
-                core.camera.x += (p.x - core.canvas.width / 2 - core.camera.x) * 0.2;
-                core.camera.y += (p.y - core.canvas.height / 2 - core.camera.y) * 0.2;
-
-                ctx.clearRect(0, 0, core.canvas.width, core.canvas.height);
-
-                WORLD.zones.forEach(z => {
-                    if (z.x - core.camera.x + z.w > 0 && z.x - core.camera.x < core.canvas.width) {
-                        core.render.drawZone(z, ctx, core.camera.x, core.camera.y);
-                    }
-                });
-
-                core.particles = core.particles.filter(part => part.life > 0);
-                core.particles.forEach(part => {
-                    part.update(delta);
-                    part.draw(ctx, core.camera.x, core.camera.y);
-                });
-                ctx.globalAlpha = 1;
-
-                for (let id in core.others) {
-                    if (id === p.nick) continue;
-                    const o = core.others[id];
-                    if (Math.abs(o.x - p.x) < core.canvas.width / 2 + o.z && Math.abs(o.y - p.y) < core.canvas.height / 2 + o.z) {
-                        core.render.drawPlayer(o.x, o.y, o.z, id, o.r, o.p, false, ctx, core.camera.x, core.camera.y);
-                    }
-                }
-
-                core.render.drawPlayer(p.x, p.y, p.size, p.nick, p.rb, p.pet, true, ctx, core.camera.x, core.camera.y);
-
-                core.logic.checkCollisions();
-
-                requestAnimationFrame(() => core.loop());
-            }
+        // --- 2. SEGUIR E SOLICITAÇÕES ---
+        window.followUser = (targetId, targetName) => {
+            set(ref(db, `requests/${targetId}/${meuIp}`), { from: meuUser, status: 'pendente' });
+            alert("Solicitação enviada!");
         };
 
-        Math.clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+        function listenToRequests() {
+            onValue(ref(db, `requests/${meuIp}`), (snap) => {
+                snap.forEach(child => {
+                    if (child.val().status === 'pendente') {
+                        if (confirm(`${child.val().from} quer te seguir. Aceitar?`)) {
+                            update(ref(db, `requests/${meuIp}/${child.key}`), { status: 'aceito' });
+                            alert("Novo seguidor adicionado!");
+                        }
+                    }
+                });
+            });
+        }
 
-        window.core = core;
+        function loadSuggestions() {
+            onValue(ref(db, 'users'), (snap) => {
+                const container = document.getElementById('users-list');
+                container.innerHTML = '';
+                snap.forEach(u => {
+                    if (u.key !== meuIp) {
+                        container.innerHTML += `
+                        <div class="user-row">
+                            <span><b>${u.val().username}</b></span>
+                            <button class="btn-follow" onclick="followUser('${u.key}', '${u.val().username}')">Seguir</button>
+                        </div>`;
+                    }
+                });
+            });
+        }
+
+        // --- 3. STORIES ---
+        window.addStory = () => {
+            const id = push(ref(db, 'stories'));
+            set(id, { user: meuUser, img: `https://picsum.photos/100/100?random=${Math.random()}`, expires: Date.now() + 86400000 });
+        };
+
+        onValue(ref(db, 'stories'), (snap) => {
+            const bar = document.getElementById('stories-list');
+            bar.innerHTML = '';
+            snap.forEach(s => {
+                if (s.val().expires > Date.now()) {
+                    bar.innerHTML += `
+                    <div class="story-item">
+                        <div class="story-ring"><img src="${s.val().img}"></div>
+                        <span>${s.val().user}</span>
+                    </div>`;
+                }
+            });
+        });
+
+        // --- 4. FEED ---
+        window.createPost = () => {
+            const p = push(ref(db, 'posts'));
+            set(p, { user: meuUser, img: `https://picsum.photos/600/600?random=${Math.random()}`, text: "Mais um dia de código! 🚀" });
+        };
+
+        onValue(ref(db, 'posts'), (snap) => {
+            const feed = document.getElementById('feed');
+            feed.innerHTML = '';
+            snap.forEach(p => {
+                const post = p.val();
+                feed.innerHTML = `
+                <div class="post-card">
+                    <div class="post-header">${post.user}</div>
+                    <img src="${post.img}" class="post-img">
+                    <div class="post-footer"><b>${post.user}</b> ${post.text}</div>
+                </div><br>` + feed.innerHTML;
+            });
+        });
+
+        // --- 5. DIRECT ---
+        window.sendMsg = () => {
+            const input = document.getElementById('msg-input');
+            if (!input.value) return;
+            push(ref(db, 'messages'), { user: meuUser, text: input.value });
+            input.value = '';
+        };
+
+        onValue(ref(db, 'messages'), (snap) => {
+            const box = document.getElementById('chat-msgs');
+            box.innerHTML = '';
+            snap.forEach(m => {
+                box.innerHTML += `<div><b>${m.val().user}:</b> ${m.val().text}</div>`;
+            });
+            box.scrollTop = box.scrollHeight;
+        });
+
+        autoLogin();
     </script>
 </body>
-    </html>
+                </html>
