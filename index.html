@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Penguin Chef - Som & NPCs</title>
+    <title>Penguin Chef - Chat & Cores</title>
     <style>
         :root { --main-red: #ff4757; --main-blue: #2e86de; --gold: #f1c40f; }
         body { margin: 0; overflow: hidden; background: #2f3542; font-family: sans-serif; touch-action: none; user-select: none; }
@@ -11,7 +11,7 @@
         /* MENU */
         #menu { position: absolute; inset: 0; background: linear-gradient(135deg, #1e272e, #485460); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; color: white; text-align: center; }
         h1 { font-size: 2.5rem; text-shadow: 0 4px 10px rgba(0,0,0,0.5); margin: 0 0 20px 0; }
-        input { padding: 15px; font-size: 18px; border-radius: 12px; border: none; margin: 8px; width: 220px; text-align: center; text-transform: uppercase; }
+        input.menu-input { padding: 15px; font-size: 18px; border-radius: 12px; border: none; margin: 8px; width: 220px; text-align: center; text-transform: uppercase; }
         button { padding: 15px 30px; font-size: 18px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; color: white; margin: 5px; box-shadow: 0 4px 0 rgba(0,0,0,0.3); }
         button:active { transform: translateY(4px); box-shadow: none; }
         #create-btn { background: var(--main-blue); }
@@ -21,11 +21,22 @@
         #game-container { position: relative; width: 100vw; height: 100vh; display: none; }
         canvas { display: block; }
         
-        #hud { position: absolute; top: 0; width: 100%; pointer-events: none; padding: 10px; box-sizing: border-box; display: flex; justify-content: space-between; font-weight: bold; color: white; text-shadow: 2px 2px 0 #000; font-size: 20px; }
-        #room-code { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 10px; font-size: 16px; }
+        #hud { position: absolute; top: 0; width: 100%; pointer-events: none; padding: 10px; box-sizing: border-box; display: flex; justify-content: space-between; font-weight: bold; color: white; text-shadow: 2px 2px 0 #000; font-size: 20px; z-index: 10; }
+        #room-code { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 10px; font-size: 16px; color: white; z-index: 10; }
+
+        /* CHAT */
+        #chat-ui { position: absolute; top: 80px; left: 10px; width: 220px; height: 160px; display: flex; flex-direction: column; z-index: 50; font-family: sans-serif; pointer-events: auto; }
+        #chat-msgs { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.6); border-radius: 8px; padding: 5px; color: white; font-size: 11px; margin-bottom: 5px; list-style: none; -webkit-overflow-scrolling: touch; }
+        #chat-msgs::-webkit-scrollbar { width: 4px; }
+        #chat-msgs::-webkit-scrollbar-thumb { background: #888; border-radius: 2px; }
+        .msg-item { margin-bottom: 4px; word-wrap: break-word; }
+        .msg-system { color: #f1c40f; font-style: italic; }
+        #chat-form { display: flex; gap: 5px; }
+        #chat-input { flex: 1; background: rgba(255,255,255,0.9); border: none; padding: 6px; border-radius: 4px; font-size: 12px; outline: none; }
+        #chat-send { background: #2ecc71; border: none; padding: 0 10px; border-radius: 4px; color: white; font-weight: bold; font-size: 16px; cursor: pointer; }
 
         /* CONTROLES */
-        #controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 30px; box-sizing: border-box; pointer-events: none; }
+        #controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 30px; box-sizing: border-box; pointer-events: none; z-index: 20; }
         #joystick-zone { width: 120px; height: 120px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; position: relative; pointer-events: auto; }
         #joystick-nub { width: 50px; height: 50px; background: white; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
         
@@ -43,8 +54,8 @@
 
     <div id="menu">
         <h1>🐧 PENGUIN CHEF</h1>
-        <input type="text" id="username" placeholder="Seu Nome" maxlength="8">
-        <input type="text" id="room-input" placeholder="CÓD SALA (Ex: ABCD)" maxlength="5">
+        <input type="text" id="username" class="menu-input" placeholder="Seu Nome" maxlength="8">
+        <input type="text" id="room-input" class="menu-input" placeholder="CÓD SALA (Ex: ABCD)" maxlength="5">
         <div>
             <button id="create-btn">CRIAR SALA</button>
             <button id="join-btn">ENTRAR</button>
@@ -59,11 +70,21 @@
 
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
+        
         <div id="hud">
             <div>💰 <span id="score">0</span></div>
             <div>😡 <span id="lost-count">0</span>/5</div>
         </div>
         <div id="room-code">SALA: ----</div>
+
+        <div id="chat-ui">
+            <div id="chat-msgs"></div>
+            <div id="chat-form">
+                <input type="text" id="chat-input" placeholder="Msg ou /cor..." autocomplete="off">
+                <button id="chat-send">➤</button>
+            </div>
+        </div>
+
         <div id="controls">
             <div id="joystick-zone"><div id="joystick-nub"></div></div>
             <div class="action-group">
@@ -75,7 +96,7 @@
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-        import { getDatabase, ref, set, onValue, update, push, remove, onDisconnect, get, runTransaction } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+        import { getDatabase, ref, set, onValue, update, push, remove, onDisconnect, get, runTransaction, onChildAdded } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q",
@@ -86,7 +107,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- SISTEMA DE SONS (CORRIGIDO) ---
+        // --- SISTEMA DE SONS ---
         const sfx = {
             bgm: new Audio('https://actions.google.com/sounds/v1/science_fiction/glitchy_digital_opening.ogg'),
             cook: new Audio('https://actions.google.com/sounds/v1/water/liquid_simmering_loop.ogg'),
@@ -97,10 +118,8 @@
         sfx.bgm.loop = true; sfx.bgm.volume = 0.4;
         sfx.cook.loop = true; 
 
-        // Função para ativar som no clique do usuário (browser policy)
         function initAudio() {
             sfx.bgm.play().catch(() => console.log("Erro BGM"));
-            // Toca e pausa rapidinho os outros para "aquecer" o áudio
             sfx.success.volume = 0; sfx.success.play().then(() => { sfx.success.pause(); sfx.success.volume = 0.5; });
         }
 
@@ -114,23 +133,34 @@
         const ctx = canvas.getContext('2d');
         
         let myId = 'p' + Math.floor(Math.random()*9999);
+        let myName = "Chef";
         let roomId = null, isHost = false;
         let players = {}, customers = {}, score = 0, lostCount = 0;
         let joystick = { active: false, dx: 0, dy: 0 };
         let actionHeld = false, cookTimer = 0, currentStation = null;
-        let layout = { stations: [], tables: [] };
+        let layout = { stations: [], tables: [], trash: {} };
         let isBoosting = false;
+        
+        // CHAT VARS
+        let myChatColor = '#ffffff';
+        const colorMap = {
+            'vermelho': '#ff4757', 'azul': '#2e86de', 'verde': '#2ecc71',
+            'amarelo': '#f1c40f', 'rosa': '#fd79a8', 'roxo': '#a55eea',
+            'laranja': '#e67e22', 'branco': '#ffffff'
+        };
 
         // --- INICIAR JOGO ---
         document.getElementById('create-btn').onclick = () => { initAudio(); start(true); };
         document.getElementById('join-btn').onclick = () => { initAudio(); start(false); };
 
         async function start(host) {
-            const name = document.getElementById('username').value || "Chef";
+            myName = document.getElementById('username').value || "Chef";
             const codeInput = document.getElementById('room-input').value.toUpperCase();
             
+            // LIMPAR CHAT AO ENTRAR
+            document.getElementById('chat-msgs').innerHTML = '';
+
             if(host) {
-                // Gerar código de 4 letras
                 roomId = "";
                 const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ";
                 for(let i=0; i<4; i++) roomId += chars.charAt(Math.floor(Math.random()*chars.length));
@@ -147,8 +177,71 @@
             document.getElementById('game-container').style.display = 'block';
             document.getElementById('room-code').innerText = "SALA: " + roomId;
 
-            setupPlayer(name);
+            setupPlayer(myName);
+            setupChat(); // Inicia o chat
             gameLoop();
+        }
+
+        // --- LÓGICA DO CHAT ---
+        function setupChat() {
+            const chatInput = document.getElementById('chat-input');
+            const chatBtn = document.getElementById('chat-send');
+            const chatList = document.getElementById('chat-msgs');
+
+            // Enviar Msg
+            const sendMsg = () => {
+                const txt = chatInput.value.trim();
+                if(!txt) return;
+
+                // Comando /cor
+                if(txt.toLowerCase().startsWith('/cor ')) {
+                    const colorName = txt.split(' ')[1].toLowerCase();
+                    if(colorMap[colorName]) {
+                        myChatColor = colorMap[colorName];
+                        addSystemMsg(`Cor do texto alterada para ${colorName.toUpperCase()}!`);
+                    } else {
+                        addSystemMsg(`Cores: vermelho, azul, verde, amarelo, rosa, roxo, laranja.`);
+                    }
+                    chatInput.value = '';
+                    return;
+                }
+
+                push(ref(db, `rooms/${roomId}/chat`), {
+                    name: myName,
+                    text: txt,
+                    color: myChatColor,
+                    ts: Date.now()
+                });
+                chatInput.value = '';
+            };
+
+            chatBtn.onclick = sendMsg;
+            // Evitar que o jogo se mova ao digitar (mas permitir Enter)
+            chatInput.onkeydown = (e) => {
+                e.stopPropagation(); 
+                if(e.key === 'Enter') sendMsg();
+            };
+            // Evitar toque no joystick ao clicar no chat
+            document.getElementById('chat-ui').ontouchstart = (e) => e.stopPropagation();
+
+            // Receber Msgs
+            onChildAdded(ref(db, `rooms/${roomId}/chat`), (snap) => {
+                const data = snap.val();
+                const li = document.createElement('div');
+                li.className = 'msg-item';
+                li.innerHTML = `<span style="color:${data.color}; font-weight:bold">${data.name}:</span> ${data.text}`;
+                chatList.appendChild(li);
+                chatList.scrollTop = chatList.scrollHeight;
+            });
+        }
+
+        function addSystemMsg(text) {
+            const chatList = document.getElementById('chat-msgs');
+            const li = document.createElement('div');
+            li.className = 'msg-item msg-system';
+            li.textContent = `[SISTEMA] ${text}`;
+            chatList.appendChild(li);
+            chatList.scrollTop = chatList.scrollHeight;
         }
 
         function setupPlayer(name) {
@@ -160,7 +253,6 @@
             });
             onDisconnect(playerRef).remove();
 
-            // Listener principal
             onValue(ref(db, `rooms/${roomId}`), (snap) => {
                 const data = snap.val();
                 if(!data) return;
@@ -179,14 +271,12 @@
                 }
             });
 
-            if(isHost) setInterval(hostLogic, 2000); // Lógica do Host
+            if(isHost) setInterval(hostLogic, 2000);
         }
 
         function hostLogic() {
-            // Gerar Clientes
             if(Object.keys(customers).length < 3 && Math.random() > 0.4) {
                 const table = layout.tables[Math.floor(Math.random()*layout.tables.length)];
-                // Verifica se mesa está vazia
                 const occupied = Object.values(customers).some(c => c.tableId === table.id);
                 if(!occupied) {
                     push(ref(db, `rooms/${roomId}/customers`), { 
@@ -196,7 +286,6 @@
                     });
                 }
             }
-            // Reduzir Paciência
             Object.keys(customers).forEach(k => {
                 const p = customers[k].patience - 5;
                 if(p <= 0) {
@@ -237,10 +326,10 @@
         // --- RENDERIZAR ---
         function resize() {
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            // Recalcular posições
-            const pad = canvas.width / (DISHES.length+1);
+            const pad = canvas.width / (DISHES.length+2);
             layout.stations = DISHES.map((d, i) => ({ x: pad*(i+1), y: 80, dish: d, size: 50 }));
             layout.tables = [0,1,2,3].map(i => ({ id: i, x: (i%2==0 ? canvas.width*0.25 : canvas.width*0.75), y: 300 + Math.floor(i/2)*150, size: 60 }));
+            layout.trash = { x: canvas.width - 50, y: 80, size: 50 };
         }
         window.onresize = resize;
 
@@ -248,52 +337,51 @@
             ctx.clearRect(0,0, canvas.width, canvas.height);
             
             // Fundo
-            ctx.fillStyle = "#3d3d3d"; ctx.fillRect(0,0, canvas.width, 150); // Cozinha
-            ctx.fillStyle = "#7f8c8d"; ctx.fillRect(0, 150, canvas.width, canvas.height); // Salão
+            ctx.fillStyle = "#3d3d3d"; ctx.fillRect(0,0, canvas.width, 150);
+            ctx.fillStyle = "#7f8c8d"; ctx.fillRect(0, 150, canvas.width, canvas.height);
 
-            // 1. Estações
+            // Estações
             layout.stations.forEach(s => {
                 ctx.fillStyle = "#bdc3c7"; ctx.fillRect(s.x-25, s.y-25, 50, 50);
                 ctx.font = "30px Arial"; ctx.textAlign="center"; ctx.fillText(s.dish.icon, s.x, s.y+10);
             });
 
-            // 2. Mesas e Clientes (NPCs)
+            // Lixeira
+            ctx.fillStyle = "#c0392b"; ctx.fillRect(layout.trash.x-25, layout.trash.y-25, 50, 50);
+            ctx.font = "30px Arial"; ctx.fillText("🗑️", layout.trash.x, layout.trash.y+10);
+
+            // Mesas
             layout.tables.forEach(t => {
-                // Mesa
                 ctx.fillStyle = "#e67e22"; ctx.beginPath(); ctx.arc(t.x, t.y, t.size/2, 0, Math.PI*2); ctx.fill();
-                
-                // Verificar cliente
                 const cust = Object.values(customers).find(c => c.tableId === t.id);
                 if(cust) {
-                    // DESENHAR O PINGUIM NPC
                     ctx.font = "40px Arial"; ctx.textAlign="center";
-                    ctx.fillText("🐧", t.x, t.y - 10); // NPC sentado
-                    
-                    // Balão de pedido
+                    ctx.fillText("🐧", t.x, t.y - 10);
                     ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(t.x+30, t.y-30, 20, 0, Math.PI*2); ctx.fill();
                     ctx.font = "20px Arial";
                     const dish = DISHES.find(d => d.id === cust.wanted);
                     if(dish) ctx.fillText(dish.icon, t.x+30, t.y-25);
-
-                    // Barra de vida
                     ctx.fillStyle = "red"; ctx.fillRect(t.x-25, t.y+35, 50, 5);
                     ctx.fillStyle = "#2ecc71"; ctx.fillRect(t.x-25, t.y+35, 50 * (cust.patience/100), 5);
                 }
             });
 
-            // 3. Jogadores (Eu e Outros)
+            // Jogadores
             const me = players[myId];
             if(me && lostCount < 5) {
-                // Movimento
                 if(joystick.active) {
                     const spd = isBoosting ? 10 : 5;
                     me.x += joystick.dx * spd; me.y += joystick.dy * spd;
                     update(ref(db, `rooms/${roomId}/players/${myId}`), { x: me.x, y: me.y });
                 }
 
-                // Ação
                 if(actionHeld) {
-                    // Cozinhar
+                    const distTrash = Math.hypot(me.x - layout.trash.x, me.y - layout.trash.y);
+                    if(distTrash < 60 && me.holding) {
+                        update(ref(db, `rooms/${roomId}/players/${myId}`), { holding: null });
+                        sfx.fail.play(); actionHeld = false;
+                    }
+
                     const station = layout.stations.find(s => Math.hypot(me.x-s.x, me.y-s.y) < 50);
                     if(station && !me.holding) {
                         if(sfx.cook.paused) sfx.cook.play();
@@ -304,7 +392,7 @@
                             actionHeld = false; sfx.cook.pause(); sfx.success.play();
                         }
                     }
-                    // Entregar
+
                     const table = layout.tables.find(t => Math.hypot(me.x-t.x, me.y-t.y) < 60);
                     if(table && me.holding) {
                         const cKey = Object.keys(customers).find(k => customers[k].tableId === table.id);
@@ -318,19 +406,14 @@
                 }
             }
 
-            // Desenhar Jogadores
             Object.values(players).forEach(p => {
-                // Sombra
                 ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.beginPath(); ctx.ellipse(p.x, p.y+15, 15, 8, 0, 0, Math.PI*2); ctx.fill();
-                // Pinguim
                 ctx.font = "40px Arial"; ctx.textAlign = "center"; ctx.fillText("🐧", p.x, p.y);
-                // Nome e Prato
                 ctx.fillStyle = "white"; ctx.font = "12px Arial"; ctx.fillText(p.name, p.x, p.y-35);
                 if(p.holding) {
                     const d = DISHES.find(x => x.id === p.holding);
                     if(d) ctx.fillText(d.icon, p.x, p.y-50);
                 }
-                // Barra de Progresso
                 if(p.name === me?.name && actionHeld && currentStation) {
                     ctx.fillStyle = "gold"; ctx.fillRect(p.x-20, p.y-20, 40 * (cookTimer/currentStation.dish.time), 5);
                 }
