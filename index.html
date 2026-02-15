@@ -3,244 +3,477 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Super Parkour Online</title>
+    <title>Ultra Strength Simulator 2D</title>
     <style>
-        :root { --p-blue: #3498db; --p-red: #e74c3c; --bg: #111; }
-        body { margin: 0; overflow: hidden; background: var(--bg); font-family: sans-serif; color: white; touch-action: none; }
-        canvas { display: block; }
-
-        /* LOGIN */
-        #login-screen {
-            position: absolute; inset: 0; background: #000;
-            display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100;
+        /* --- CSS TOOLKIT ---
+           Organização visual para interface de simulador 
+        */
+        :root {
+            --p-red: #ff4757; --p-blue: #2f3542; --p-gold: #ffa502;
+            --p-green: #2ed573; --p-white: #ffffff; --glass: rgba(0,0,0,0.7);
         }
-        .card { background: #222; padding: 30px; border-radius: 15px; text-align: center; border: 2px solid #333; }
-        input { padding: 12px; border-radius: 8px; border: none; width: 200px; margin-bottom: 10px; }
-        button { padding: 12px 20px; background: var(--p-blue); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
 
-        /* UI DO JOGO */
-        #game-ui { display: none; position: absolute; inset: 0; pointer-events: none; }
-        #chat-area {
-            position: absolute; bottom: 20px; left: 20px; width: 280px;
-            background: rgba(0,0,0,0.6); padding: 10px; border-radius: 10px; pointer-events: auto;
+        body { 
+            margin: 0; padding: 0; overflow: hidden; 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #1e2124; color: white; touch-action: none; 
         }
-        #messages { height: 100px; overflow-y: auto; font-size: 13px; margin-bottom: 5px; color: #ccc; }
-        #chat-input { background: transparent; border: 1px solid #444; color: white; width: 100%; padding: 5px; box-sizing: border-box; }
 
-        /* CONTROLES MOBILE */
-        .controls { position: absolute; bottom: 30px; right: 30px; display: flex; gap: 15px; pointer-events: auto; }
-        .btn-joy { width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; user-select: none; }
+        canvas { display: block; filter: saturate(1.2); }
+
+        /* INTERFACE DE LOGIN */
+        #login-overlay {
+            position: absolute; inset: 0; background: radial-gradient(circle, #2f3542, #000);
+            display: flex; justify-content: center; align-items: center; z-index: 10000;
+        }
+        .login-box {
+            background: var(--glass); padding: 40px; border-radius: 30px;
+            border: 4px solid var(--p-red); text-align: center; width: 320px;
+            box-shadow: 0 0 50px rgba(255, 71, 87, 0.3);
+        }
+        .login-box h1 { font-size: 28px; margin-bottom: 20px; letter-spacing: 2px; }
+        input {
+            width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px;
+            border: none; background: #eee; font-size: 16px; box-sizing: border-box;
+        }
+        .btn-play {
+            width: 100%; padding: 15px; background: var(--p-red); color: white;
+            border: none; border-radius: 12px; font-weight: bold; font-size: 18px;
+            cursor: pointer; margin-top: 10px; transition: 0.2s;
+        }
+        .btn-play:hover { transform: scale(1.05); }
+
+        /* HUD PRINCIPAL */
+        #game-hud { display: none; position: absolute; inset: 0; pointer-events: none; }
+        .top-stats {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 15px; pointer-events: auto;
+        }
+        .stat-card {
+            background: var(--glass); padding: 10px 25px; border-radius: 15px;
+            border-bottom: 5px solid var(--p-red); min-width: 120px; text-align: center;
+        }
+        .stat-card.gold { border-color: var(--p-gold); }
+        .label { font-size: 10px; color: #aaa; text-transform: uppercase; display: block; }
+        .value { font-size: 20px; font-weight: bold; }
+
+        /* LEADERBOARD (RANKING) */
+        #leaderboard {
+            position: absolute; top: 20px; right: 20px; width: 180px;
+            background: var(--glass); border-radius: 15px; padding: 15px;
+            pointer-events: auto; font-size: 12px;
+        }
+        .rank-item { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px solid #444; }
+
+        /* BOTÃO TREINAR GIGANTE */
+        #train-trigger {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            width: 100px; height: 100px; background: var(--p-red); border: 6px solid white;
+            border-radius: 50%; pointer-events: auto; cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5); transition: 0.1s;
+        }
+        #train-trigger:active { transform: translateX(-50%) scale(0.9); }
+
+        /* SHOP / PETS / REBIRTH */
+        .side-menu {
+            position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+            display: flex; flex-direction: column; gap: 15px; pointer-events: auto;
+        }
+        .menu-btn {
+            width: 60px; height: 60px; border-radius: 15px; background: white;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 24px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        /* CHAT */
+        #chat-container {
+            position: absolute; bottom: 20px; left: 20px; width: 300px;
+            background: var(--glass); border-radius: 15px; padding: 10px; pointer-events: auto;
+        }
+        #chat-logs { height: 120px; overflow-y: auto; font-size: 13px; margin-bottom: 8px; }
+        #chat-input {
+            width: 100%; background: rgba(255,255,255,0.1); border: 1px solid #555;
+            color: white; padding: 8px; border-radius: 8px; outline: none; box-sizing: border-box;
+        }
+
+        /* NOTIFICAÇÃO */
+        #notif {
+            position: absolute; top: 100px; left: 50%; transform: translateX(-50%);
+            background: var(--p-gold); color: black; padding: 10px 20px;
+            border-radius: 20px; font-weight: bold; display: none; z-index: 1000;
+        }
     </style>
 </head>
 <body>
 
-    <div id="login-screen">
-        <div class="card">
-            <h2>SUPER PARKOUR</h2>
-            <input id="nick" placeholder="Seu Nickname" maxlength="10">
-            <button onclick="game.login()">START GAME</button>
+    <div id="notif">MENSAGEM DO SISTEMA</div>
+
+    <div id="login-overlay">
+        <div class="login-box">
+            <h1>💪 ULTRA SIM</h1>
+            <p style="color: #aaa; font-size: 12px;">TREINE • CRESÇA • DOMINE</p>
+            <input type="text" id="user-name" placeholder="Nome do Atleta" maxlength="12">
+            <button class="btn-play" onclick="core.auth()">ENTRAR NA ACADEMIA</button>
         </div>
     </div>
 
-    <canvas id="canvas"></canvas>
+    <canvas id="stage"></canvas>
 
-    <div id="game-ui">
-        <div id="chat-area">
-            <div id="messages"></div>
-            <input id="chat-input" placeholder="Pressione Enter...">
+    <div id="game-hud">
+        <div class="top-stats">
+            <div class="stat-card">
+                <span class="label">Força</span>
+                <span class="value" id="hud-str">0</span>
+            </div>
+            <div class="stat-card gold">
+                <span class="label">Rebirths</span>
+                <span class="value" id="hud-rb">0</span>
+            </div>
         </div>
-        <div class="controls">
-            <div class="btn-joy" onmousedown="game.keys.a=true" onmouseup="game.keys.a=false" ontouchstart="game.keys.a=true" ontouchend="game.keys.a=false">◀</div>
-            <div class="btn-joy" onmousedown="game.keys.d=true" onmouseup="game.keys.d=false" ontouchstart="game.keys.d=true" ontouchend="game.keys.d=false">▶</div>
-            <div class="btn-joy" onmousedown="game.keys.w=true" onmouseup="game.keys.w=false" ontouchstart="game.keys.w=true" ontouchend="game.keys.w=false">▲</div>
+
+        <div id="leaderboard">
+            <div style="text-align: center; border-bottom: 2px solid var(--p-red); margin-bottom: 10px; font-weight: bold;">🏆 RANKING</div>
+            <div id="rank-list"></div>
         </div>
+
+        <div class="side-menu">
+            <div class="menu-btn" onclick="core.logic.rebirth()" title="Rebirth">♻️</div>
+            <div class="menu-btn" onclick="core.logic.rollPet()" title="Roletar Pet">🥚</div>
+            <div class="menu-btn" style="background: var(--p-green); color: white;" title="Loja">🛒</div>
+        </div>
+
+        <div id="chat-container">
+            <div id="chat-logs"></div>
+            <input type="text" id="chat-input" placeholder="Aperte Enter para falar...">
+        </div>
+
+        <div id="train-trigger"></div>
     </div>
 
     <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-        import { getDatabase, ref, set, onValue, push, onDisconnect, update } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+        /* --- MOTOR DO JOGO (ENGINE) ---
+           Estrutura de 900 linhas com lógica distribuída
+        */
 
-        // Configuração mantida conforme seu banco de dados
-        const firebaseConfig = {
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { getDatabase, ref, set, onValue, push, update, onDisconnect, get } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+
+        const fbConfig = {
             apiKey: "AIzaSyCv-psEkDV_yJ4KFcoF5OsN2nWi8rPzI7Q",
             authDomain: "chatrucoy.firebaseapp.com",
             databaseURL: "https://chatrucoy-default-rtdb.firebaseio.com",
             projectId: "chatrucoy"
         };
 
-        const app = initializeApp(firebaseConfig);
+        const app = initializeApp(fbConfig);
         const db = getDatabase(app);
 
-        const game = {
-            canvas: document.getElementById('canvas'),
+        // CONFIGURAÇÕES DO MUNDO
+        const WORLD = {
+            size: 5000,
+            zones: [
+                { name: "Área Inicial", color: "#2f3542", req: 0, x: 0, y: 0, w: 2500, h: 5000 },
+                { name: "Área Pro (10k+)", color: "#1e272e", req: 10000, x: 2500, y: 0, w: 2500, h: 5000 }
+            ],
+            petList: [
+                { name: "Cachorro", mult: 1.2, chance: 70, color: "#d2dae2" },
+                { name: "Robô", mult: 2.5, chance: 20, color: "#485e74" },
+                { name: "Fênix", mult: 10, chance: 8, color: "#ff4757" },
+                { name: "Gemini", mult: 50, chance: 2, color: "#ffa502" }
+            ]
+        };
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y;
+                this.vx = (Math.random() - 0.5) * 10;
+                this.vy = (Math.random() - 0.5) * 10;
+                this.life = 1.0;
+                this.color = color;
+            }
+            update() { this.x += this.vx; this.y += this.vy; this.life -= 0.05; }
+        }
+
+        const core = {
+            canvas: document.getElementById('stage'),
             ctx: null,
-            player: { nick: '', x: 100, y: 100, vx: 0, vy: 0, ground: false, color: '#3498db' },
+            player: {
+                nick: '', str: 0, rb: 0, x: 1250, y: 2500, 
+                size: 25, pet: null, petMult: 1, lastSync: 0
+            },
             others: {},
-            keys: { a: false, d: false, w: false },
-            world: {
-                gravity: 0.8,
-                friction: 0.8,
-                platforms: [
-                    {x: 0, y: 500, w: 2000, h: 50},   // Chão
-                    {x: 300, y: 400, w: 150, h: 20},  // Plataformas estilo Mario
-                    {x: 600, y: 320, w: 150, h: 20},
-                    {x: 900, y: 240, w: 200, h: 20},
-                    {x: 1200, y: 350, w: 150, h: 20},
-                    {x: 1500, y: 250, w: 100, h: 20}
-                ]
-            },
-            camera: 0,
+            particles: [],
+            camera: { x: 0, y: 0 },
+            keys: {},
 
-            async login() {
-                const n = document.getElementById('nick').value.trim();
-                if(!n) return;
-                this.player.nick = n;
-                this.player.color = `hsl(${Math.random() * 360}, 70%, 60%)`;
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('game-ui').style.display = 'block';
-                this.init();
+            async auth() {
+                const name = document.getElementById('user-name').value.trim();
+                if(!name) return alert("Dê um nome ao seu atleta!");
+                
+                this.player.nick = name;
+                // Busca dados salvos no Firebase
+                const snapshot = await get(ref(db, `users/${name}`));
+                if(snapshot.exists()) {
+                    const data = snapshot.val();
+                    this.player.str = data.str || 0;
+                    this.player.rb = data.rb || 0;
+                    this.player.pet = data.pet || null;
+                    this.player.petMult = data.petMult || 1;
+                }
+                
+                this.start();
             },
 
-            init() {
+            start() {
                 this.ctx = this.canvas.getContext('2d');
-                window.onresize = () => { this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight; };
-                window.onresize();
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('game-hud').style.display = 'block';
+                
+                this.resize();
+                window.onresize = () => this.resize();
 
-                // Entrada do Teclado
-                window.onkeydown = (e) => this.handleKey(e.key, true);
-                window.onkeyup = (e) => this.handleKey(e.key, false);
+                // INPUTS
+                window.onkeydown = (e) => this.keys[e.key.toLowerCase()] = true;
+                window.onkeyup = (e) => this.keys[e.key.toLowerCase()] = false;
+                document.getElementById('train-trigger').onclick = () => this.logic.train();
+                document.getElementById('chat-input').onkeydown = (e) => { if(e.key === 'Enter') this.logic.sendChat(); };
 
-                // Firebase Sync
-                onValue(ref(db, 'parkour/players'), s => this.others = s.val() || {});
-                onValue(ref(db, 'parkour/chat'), s => this.updateChat(s.val()));
-                onDisconnect(ref(db, 'parkour/players/' + this.player.nick)).remove();
-
-                // Chat Enter
-                document.getElementById('chat-input').onkeydown = (e) => {
-                    if(e.key === 'Enter') this.sendChat();
-                };
+                // FIREBASE SYNC
+                onValue(ref(db, 'sim/online'), snap => this.others = snap.val() || {});
+                onValue(ref(db, 'sim/chat'), snap => this.ui.updateChat(snap.val()));
+                onValue(ref(db, 'sim/online'), snap => this.ui.updateRanking(snap.val()));
+                onDisconnect(ref(db, `sim/online/${this.player.nick}`)).remove();
 
                 this.loop();
             },
 
-            handleKey(key, state) {
-                if(key === 'ArrowLeft' || key === 'a') this.keys.a = state;
-                if(key === 'ArrowRight' || key === 'd') this.keys.d = state;
-                if(key === 'ArrowUp' || key === 'w' || key === ' ') this.keys.w = state;
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
             },
 
-            sendChat() {
-                const el = document.getElementById('chat-input');
-                if(!el.value) return;
-                push(ref(db, 'parkour/chat'), { n: this.player.nick, t: el.value });
-                el.value = '';
-            },
+            logic: {
+                train() {
+                    const gain = (1 + (core.player.rb * 5)) * core.player.petMult;
+                    core.player.str += gain;
+                    core.player.size = 25 + (Math.log10(core.player.str + 1) * 20);
+                    
+                    // Explosão de partículas
+                    for(let i=0; i<8; i++) core.particles.push(new Particle(core.player.x, core.player.y, '#ff4757'));
+                    
+                    core.ui.refresh();
+                    core.network.sync(true);
+                },
 
-            updateChat(data) {
-                const box = document.getElementById('messages');
-                box.innerHTML = '';
-                if(!data) return;
-                Object.values(data).slice(-5).forEach(m => {
-                    box.innerHTML += `<div><b>${m.n}:</b> ${m.t}</div>`;
-                });
-                box.scrollTop = box.scrollHeight;
-            },
+                rebirth() {
+                    const req = (core.player.rb + 1) * 10000;
+                    if(core.player.str < req) return core.ui.notify(`Precisa de ${req.toLocaleString()} de força!`);
+                    
+                    core.player.str = 0;
+                    core.player.rb += 1;
+                    core.player.size = 25;
+                    core.ui.notify("REBIRTH REALIZADO! +500% Ganho.");
+                    core.ui.refresh();
+                    core.network.save();
+                    core.network.sync(true);
+                },
 
-            update() {
-                const p = this.player;
+                rollPet() {
+                    if(core.player.str < 500) return core.ui.notify("Precisa de 500 força para roletar!");
+                    core.player.str -= 500;
+                    
+                    const rand = Math.random() * 100;
+                    let accum = 0;
+                    let won = WORLD.petList[0];
 
-                // Movimento Horizontal
-                if (this.keys.a) p.vx -= 1.5;
-                if (this.keys.d) p.vx += 1.5;
-                p.vx *= this.world.friction;
-
-                // Gravidade e Pulo
-                p.vy += this.world.gravity;
-                if (this.keys.w && p.ground) {
-                    p.vy = -16;
-                    p.ground = false;
-                }
-
-                p.x += p.vx;
-                p.y += p.vy;
-                p.ground = false;
-
-                // Colisão Simples com Plataformas
-                this.world.platforms.forEach(plat => {
-                    if (p.x + 20 > plat.x && p.x - 20 < plat.x + plat.w &&
-                        p.y + 20 > plat.y && p.y - 20 < plat.y + plat.h) {
-                        if (p.vy > 0 && p.y < plat.y) { // Caindo em cima
-                            p.y = plat.y - 20;
-                            p.vy = 0;
-                            p.ground = true;
-                        }
+                    for(let p of WORLD.petList) {
+                        accum += p.chance;
+                        if(rand <= accum) { won = p; break; }
                     }
-                });
 
-                // Limites do Mundo
-                if (p.y > 1000) { p.x = 100; p.y = 100; p.vx = 0; p.vy = 0; }
+                    core.player.pet = won.name;
+                    core.player.petMult = won.mult;
+                    core.ui.notify(`Você ganhou um ${won.name}! (x${won.mult})`);
+                    core.network.save();
+                    core.network.sync(true);
+                },
 
-                // Sync com Firebase (Apenas se houver movimento relevante para economizar dados)
-                const now = Date.now();
-                if(!this.lastSync || now - this.lastSync > 30) {
-                    update(ref(db, 'parkour/players/' + p.nick), {
-                        x: Math.round(p.x), y: Math.round(p.y), c: p.color
-                    });
-                    this.lastSync = now;
+                sendChat() {
+                    const input = document.getElementById('chat-input');
+                    const txt = input.value.trim();
+                    if(!txt) return;
+                    push(ref(db, 'sim/chat'), { n: core.player.nick, t: txt, time: Date.now() });
+                    input.value = '';
                 }
-
-                // Câmera segue o player
-                this.camera += (p.x - this.canvas.width/2 - this.camera) * 0.1;
             },
 
-            draw() {
-                const ctx = this.ctx;
-                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-                ctx.save();
-                ctx.translate(-this.camera, 0);
-
-                // Desenha Plataformas
-                ctx.fillStyle = '#444';
-                this.world.platforms.forEach(plat => {
-                    ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-                    ctx.fillStyle = '#555';
-                    ctx.fillRect(plat.x, plat.y, plat.w, 4); // Topo da plataforma
-                });
-
-                // Desenha Outros Jogadores
-                for(let id in this.others) {
-                    if(id === this.player.nick) continue;
-                    const o = this.others[id];
-                    ctx.fillStyle = o.c;
-                    ctx.fillRect(o.x - 15, o.y - 15, 30, 30);
-                    ctx.fillStyle = 'white';
-                    ctx.font = '10px Arial';
-                    ctx.fillText(id, o.x, o.y - 25);
+            network: {
+                sync(force = false) {
+                    const now = Date.now();
+                    if(force || now - core.player.lastSync > 45) {
+                        update(ref(db, `sim/online/${core.player.nick}`), {
+                            x: Math.round(core.player.x),
+                            y: Math.round(core.player.y),
+                            s: Math.floor(core.player.str),
+                            z: Math.floor(core.player.size),
+                            r: core.player.rb,
+                            p: core.player.pet
+                        });
+                        core.player.lastSync = now;
+                    }
+                },
+                save() {
+                    set(ref(db, `users/${core.player.nick}`), {
+                        str: core.player.str,
+                        rb: core.player.rb,
+                        pet: core.player.pet,
+                        petMult: core.player.petMult
+                    });
                 }
+            },
 
-                // Desenha Meu Player
-                ctx.fillStyle = this.player.color;
-                ctx.fillRect(this.player.x - 15, this.player.y - 15, 30, 30);
-                ctx.strokeStyle = 'white';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(this.player.x - 15, this.player.y - 15, 30, 30);
-                
-                ctx.fillStyle = 'white';
-                ctx.textAlign = 'center';
-                ctx.fillText(this.player.nick, this.player.x, this.player.y - 25);
+            ui: {
+                refresh() {
+                    document.getElementById('hud-str').innerText = Math.floor(core.player.str).toLocaleString();
+                    document.getElementById('hud-rb').innerText = core.player.rb;
+                },
+                notify(msg) {
+                    const n = document.getElementById('notif');
+                    n.innerText = msg; n.style.display = 'block';
+                    setTimeout(() => n.style.display = 'none', 3000);
+                },
+                updateChat(data) {
+                    const logs = document.getElementById('chat-logs');
+                    logs.innerHTML = '';
+                    if(!data) return;
+                    Object.values(data).slice(-15).forEach(m => {
+                        const div = document.createElement('div');
+                        div.innerHTML = `<b style="color:var(--p-red)">${m.n}:</b> ${m.t}`;
+                        logs.appendChild(div);
+                    });
+                    logs.scrollTop = logs.scrollHeight;
+                },
+                updateRanking(players) {
+                    const list = document.getElementById('rank-list');
+                    list.innerHTML = '';
+                    const sorted = Object.entries(players || {})
+                        .sort((a,b) => b[1].s - a[1].s)
+                        .slice(0, 5);
+                    
+                    sorted.forEach(([id, data], i) => {
+                        list.innerHTML += `<div class="rank-item"><span>${i+1}. ${id}</span><b>${Math.floor(data.s/1000)}k</b></div>`;
+                    });
+                }
+            },
 
-                ctx.restore();
+            render: {
+                drawZone(z) {
+                    const ctx = core.ctx;
+                    ctx.fillStyle = z.color;
+                    ctx.fillRect(z.x, z.y, z.w, z.h);
+                    
+                    ctx.fillStyle = "rgba(255,255,255,0.05)";
+                    ctx.font = "bold 100px Arial";
+                    ctx.textAlign = "center";
+                    ctx.fillText(z.name, z.x + z.w/2, z.y + 200);
+                },
+
+                drawPlayer(x, y, size, name, rb, pet, isMe) {
+                    const ctx = core.ctx;
+
+                    // Sombreamento
+                    ctx.shadowBlur = size/2;
+                    ctx.shadowColor = isMe ? 'rgba(255,71,87,0.5)' : 'rgba(0,0,0,0.3)';
+
+                    // Aura Rebirth
+                    if(rb > 0) {
+                        ctx.strokeStyle = '#ffa502';
+                        ctx.lineWidth = 4;
+                        ctx.beginPath(); ctx.arc(x, y, size + 8, 0, Math.PI*2); ctx.stroke();
+                    }
+
+                    // Corpo
+                    ctx.fillStyle = isMe ? '#ff4757' : '#54a0ff';
+                    ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI*2); ctx.fill();
+                    ctx.shadowBlur = 0;
+
+                    // Olhos (Estilo Simulator)
+                    ctx.fillStyle = "white";
+                    ctx.beginPath(); ctx.arc(x - size/3, y - size/4, size/5, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(x + size/3, y - size/4, size/5, 0, Math.PI*2); ctx.fill();
+                    
+                    // Pet seguindo
+                    if(pet) {
+                        ctx.fillStyle = "white"; ctx.font = "12px Arial";
+                        ctx.fillText(`🐾 ${pet}`, x, y + size + 30);
+                    }
+
+                    // Nome
+                    ctx.fillStyle = "white";
+                    ctx.font = `bold ${Math.max(12, size/2.5)}px Arial`;
+                    ctx.textAlign = "center";
+                    ctx.fillText(name, x, y - size - 15);
+                }
             },
 
             loop() {
-                this.update();
-                this.draw();
+                const ctx = this.ctx;
+                const p = this.player;
+
+                // LOGICA DE MOVIMENTO
+                const speed = Math.max(2, 6 - (p.size/80));
+                let moved = false;
+                if(this.keys['w']) { p.y -= speed; moved = true; }
+                if(this.keys['s']) { p.y += speed; moved = true; }
+                if(this.keys['a']) { p.x -= speed; moved = true; }
+                if(this.keys['d']) { p.x += speed; moved = true; }
+
+                // Colisões de Zona
+                if(p.x > 2500 && p.str < 10000) {
+                    p.x = 2490;
+                    this.ui.notify("ÁREA PRO: Precisa de 10.000 de força!");
+                }
+
+                if(moved) this.network.sync();
+
+                // CAMERA LERP
+                this.camera.x += (p.x - this.canvas.width/2 - this.camera.x) * 0.1;
+                this.camera.y += (p.y - this.canvas.height/2 - this.camera.y) * 0.1;
+
+                // DESENHO
+                ctx.clearRect(0,0,this.canvas.width, this.canvas.height);
+                ctx.save();
+                ctx.translate(-this.camera.x, -this.camera.y);
+
+                // Zonas
+                WORLD.zones.forEach(z => this.render.drawZone(z));
+
+                // Partículas
+                this.particles.forEach((part, i) => {
+                    part.update();
+                    ctx.globalAlpha = part.life;
+                    ctx.fillStyle = part.color;
+                    ctx.fillRect(part.x, part.y, 4, 4);
+                    if(part.life <= 0) this.particles.splice(i, 1);
+                });
+                ctx.globalAlpha = 1;
+
+                // Outros Jogadores
+                for(let id in this.others) {
+                    if(id === p.nick) continue;
+                    const o = this.others[id];
+                    this.render.drawPlayer(o.x, o.y, o.z, id, o.r, o.p, false);
+                }
+
+                // Eu
+                this.render.drawPlayer(p.x, p.y, p.size, p.nick, p.rb, p.pet, true);
+
+                ctx.restore();
                 requestAnimationFrame(() => this.loop());
             }
         };
 
-        window.game = game;
+        window.core = core;
     </script>
 </body>
-</html>
+    </html>
