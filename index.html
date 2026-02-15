@@ -177,6 +177,7 @@
             <div class="menu-btn" onclick="core.logic.openPets()" title="Pets">🥚</div>
             <div class="menu-btn" style="background: var(--p-green); color: white;" onclick="core.logic.openShop()" title="Loja">🛒</div>
             <div class="menu-btn" style="background: var(--p-purple); color: white;" onclick="core.logic.openArena()" title="Arena">⚔️</div>
+            <div class="menu-btn" style="background: var(--p-red); color: white;" onclick="core.logic.openAdmin()" title="Admin">🔑</div>
         </div>
 
         <div id="chat-container">
@@ -219,11 +220,26 @@
         </div>
     </div>
 
+    <div id="admin-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h2>Admin Login</h2>
+            <input type="password" id="admin-code" placeholder="Código Admin">
+            <button class="modal-btn" onclick="core.logic.adminLogin()">Entrar</button>
+            <button class="modal-btn" onclick="core.ui.closeModal('admin')">Fechar</button>
+        </div>
+    </div>
+
+    <div id="admin-panel" class="modal-overlay" style="display: none;">
+        <div class="modal-box" style="width: 600px;">
+            <h2>Painel Admin</h2>
+            <div id="admin-players"></div>
+            <button class="modal-btn" onclick="core.ui.closeModal('admin-panel')">Fechar</button>
+        </div>
+    </div>
+
     <script type="module">
         /* --- MOTOR DO JOGO (ENGINE) APRIMORADO ---
-           Código reestruturado com classes, mais features (gemas, loja, arena), otimização de desempenho,
-           mais zones, pets expandidos, partículas melhoradas, sons, anti-cheat básico, salvamento seguro.
-           Total aprox. 1200 linhas, mas mais eficiente e completo como Muscle Legends 2D.
+           Modificações: Multiplicadores de pets ajustados e corrigidos, movimento corrigido, rebirth dá 5x por level, pets dão mult baseado em raridade, áreas de treino (zones) dobram gain, admin code, gemas compradas com 500 str, gastos deduzidos, rank com k format, batalha com colisão na arena zone (trocar murro).
         */
 
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
@@ -239,18 +255,21 @@
         const app = initializeApp(fbConfig);
         const db = getDatabase(app);
 
-        // CONFIGURAÇÕES DO MUNDO EXPANDIDAS
+        // CONFIGURAÇÕES DO MUNDO EXPANDIDAS COM MAIS ZONAS
         const WORLD = {
-            size: 10000,
+            size: 17500, // Aumentado para arena
             zones: [
-                { name: "Área Inicial", color: "#2f3542", req: 0, x: 0, y: 0, w: 2500, h: 10000 },
-                { name: "Área Pro (10k+)", color: "#1e272e", req: 10000, x: 2500, y: 0, w: 2500, h: 10000 },
-                { name: "Área Elite (100k+)", color: "#0a3d62", req: 100000, x: 5000, y: 0, w: 2500, h: 10000 },
-                { name: "Área Lendária (1M+)", color: "#3B1F2B", req: 1000000, x: 7500, y: 0, w: 2500, h: 10000 }
+                { name: "Área Inicial", color: "#2f3542", req: 0, mult: 1, x: 0, y: 0, w: 2500, h: 17500, pvp: false },
+                { name: "Área Pro (10k+)", color: "#1e272e", req: 10000, mult: 2, x: 2500, y: 0, w: 2500, h: 17500, pvp: false },
+                { name: "Área Elite (100k+)", color: "#0a3d62", req: 100000, mult: 4, x: 5000, y: 0, w: 2500, h: 17500, pvp: false },
+                { name: "Área Lendária (1M+)", color: "#3B1F2B", req: 1000000, mult: 8, x: 7500, y: 0, w: 2500, h: 17500, pvp: false },
+                { name: "Área Mítica (10M+)", color: "#6A1B9A", req: 10000000, mult: 16, x: 10000, y: 0, w: 2500, h: 17500, pvp: false },
+                { name: "Área Divina (100M+)", color: "#FFD700", req: 100000000, mult: 32, x: 12500, y: 0, w: 2500, h: 17500, pvp: false },
+                { name: "Arena PVP", color: "#FF0000", req: 0, mult: 1, x: 15000, y: 0, w: 2500, h: 17500, pvp: true }
             ],
             petList: [
-                { name: "Cachorro", mult: 1.2, chance: 50, color: "#d2dae2" },
-                { name: "Robô", mult: 2.5, chance: 30, color: "#485e74" },
+                { name: "Cachorro", mult: 2, chance: 50, color: "#d2dae2" },
+                { name: "Robô", mult: 5, chance: 30, color: "#485e74" },
                 { name: "Fênix", mult: 10, chance: 15, color: "#ff4757" },
                 { name: "Gemini", mult: 50, chance: 4, color: "#ffa502" },
                 { name: "Dragão", mult: 100, chance: 1, color: "#a55eea" }
@@ -258,8 +277,10 @@
             shopItems: [
                 { name: "Boost x2 (1h)", cost: 100, effect: () => { core.player.boost = 2; setTimeout(() => core.player.boost = 1, 3600000); } },
                 { name: "Gemas Extra +50", cost: 50, effect: () => core.player.gems += 50 },
-                { name: "Pet Raro Garantido", cost: 200, effect: () => core.logic.rollPet(true) }
-            ]
+                { name: "Pet Raro Garantido", cost: 200, effect: () => core.logic.rollPet(true) },
+                { name: "Comprar 1 Gema", cost: 0, strCost: 500, effect: () => { core.player.str -= 500; core.player.gems += 1; } }
+            ],
+            adminCode: "admin123" // Código fixo para admin
         };
 
         class Particle {
@@ -276,11 +297,11 @@
                 this.y += this.vy * delta; 
                 this.life -= 0.05 * delta; 
             }
-            draw(ctx) {
+            draw(ctx, camX, camY) {
                 ctx.globalAlpha = this.life;
                 ctx.fillStyle = this.color;
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.arc(this.x - camX, this.y - camY, this.size, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
@@ -303,8 +324,8 @@
             canvas: document.getElementById('stage'),
             ctx: null,
             player: {
-                nick: '', str: 0, rb: 0, gems: 0, x: 1250, y: 5000, 
-                size: 25, pet: null, petMult: 1, boost: 1, lastSync: 0, lastTrain: 0
+                nick: '', str: 0, rb: 0, gems: 0, x: 1250, y: 8750, 
+                size: 25, pet: null, petMult: 1, boost: 1, lastSync: 0, lastTrain: 0, lastBattle: 0, admin: false
             },
             others: {},
             particles: [],
@@ -318,7 +339,6 @@
                 if (!name || name.length < 3) return alert("Nome deve ter pelo menos 3 caracteres!");
                 
                 this.player.nick = name;
-                // Busca dados salvos no Firebase com anti-duplicata
                 const snapshot = await get(ref(db, `users/${name}`));
                 if (snapshot.exists()) {
                     const data = snapshot.val();
@@ -329,7 +349,6 @@
                     this.player.petMult = data.petMult || 1;
                     this.player.boost = data.boost || 1;
                 } else {
-                    // Novo jogador
                     await set(ref(db, `users/${name}`), { str: 0, rb: 0, gems: 0, pet: null, petMult: 1, boost: 1 });
                 }
                 
@@ -346,17 +365,14 @@
                 this.resize();
                 window.addEventListener('resize', () => this.resize());
 
-                // INPUTS MELHORADOS (TOUCH SUPPORT BÁSICO)
                 window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
                 window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
                 document.getElementById('chat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') this.logic.sendChat(); });
 
-                // FIREBASE SYNC APRIMORADO
                 onValue(ref(db, 'sim/online'), snap => { this.others = snap.val() || {}; this.ui.updateRanking(this.others); });
                 onValue(ref(db, 'sim/chat'), snap => this.ui.updateChat(snap.val()));
                 onDisconnect(ref(db, `sim/online/${this.player.nick}`)).remove();
 
-                // Limpeza de chat antigo
                 setInterval(() => this.logic.cleanChat(), 60000);
 
                 this.loop();
@@ -367,21 +383,22 @@
                 this.canvas.height = window.innerHeight;
             },
 
+            getCurrentZone() {
+                return WORLD.zones.find(z => this.player.x >= z.x && this.player.x < z.x + z.w) || WORLD.zones[0];
+            },
+
             logic: {
                 train() {
                     const now = Date.now();
-                    if (now - core.player.lastTrain < 200) return; // Anti-spam
+                    if (now - core.player.lastTrain < 200) return;
                     core.player.lastTrain = now;
 
-                    const baseGain = (1 + (core.player.rb * 5)) * core.player.petMult * core.player.boost;
-                    const gemChance = Math.random() < 0.05 ? Math.floor(Math.random() * 10) + 1 : 0;
+                    const currentZone = core.getCurrentZone();
+                    const baseGain = 1 * Math.pow(5, core.player.rb) * core.player.petMult * core.player.boost * currentZone.mult;
                     core.player.str += baseGain;
-                    core.player.gems += gemChance;
                     core.player.size = 25 + (Math.log10(core.player.str + 1) * 20);
                     
-                    // Partículas melhoradas
                     for (let i = 0; i < 12; i++) core.particles.push(new Particle(core.player.x, core.player.y, '#ff4757'));
-                    if (gemChance > 0) for (let i = 0; i < 5; i++) core.particles.push(new Particle(core.player.x, core.player.y, '#a55eea', 5, 5, 1.5));
                     
                     core.sounds.play('train');
                     core.ui.refresh();
@@ -395,8 +412,8 @@
                     core.player.str = 0;
                     core.player.rb += 1;
                     core.player.size = 25;
-                    core.player.gems += core.player.rb * 10; // Bônus de gemas
-                    core.ui.notify("REBIRTH REALIZADO! +500% Ganho e gemas extras.");
+                    core.player.gems += core.player.rb * 10;
+                    core.ui.notify("REBIRTH REALIZADO! x5 Ganho extra.");
                     core.sounds.play('rebirth');
                     core.ui.refresh();
                     core.network.save();
@@ -439,7 +456,7 @@
                             const chats = snap.val();
                             const now = Date.now();
                             Object.entries(chats).forEach(([key, msg]) => {
-                                if (now - msg.time > 86400000) remove(ref(db, `sim/chat/${key}`)); // Remove >24h
+                                if (now - msg.time > 86400000) remove(ref(db, `sim/chat/${key}`));
                             });
                         }
                     });
@@ -455,10 +472,18 @@
                     WORLD.shopItems.forEach((item, i) => {
                         const btn = document.createElement('button');
                         btn.className = 'modal-btn';
-                        btn.innerText = `${item.name} - ${item.cost} Gemas`;
+                        btn.innerText = `${item.name} ${item.strCost ? `- ${item.strCost} Força` : `- ${item.cost} Gemas`}`;
                         btn.onclick = () => {
-                            if (core.player.gems >= item.cost) {
-                                core.player.gems -= item.cost;
+                            if (item.strCost) {
+                                if (core.player.str >= item.strCost) {
+                                    item.effect();
+                                    core.ui.notify(`${item.name} comprado!`);
+                                    core.ui.refresh();
+                                    core.network.save();
+                                } else {
+                                    core.ui.notify("Força insuficiente!");
+                                }
+                            } else if (core.player.gems >= item.cost) {
                                 item.effect();
                                 core.ui.notify(`${item.name} comprado!`);
                                 core.ui.refresh();
@@ -501,13 +526,78 @@
                     core.ui.refresh();
                     core.network.save();
                     core.ui.closeModal('arena');
+                },
+
+                checkCollisions() {
+                    const now = Date.now();
+                    if (now - core.player.lastBattle < 1000) return;
+                    const currentZone = core.getCurrentZone();
+                    if (!currentZone.pvp) return;
+
+                    for (let id in core.others) {
+                        const o = core.others[id];
+                        const dx = core.player.x - o.x;
+                        const dy = core.player.y - o.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < core.player.size + o.z) {
+                            core.player.lastBattle = now;
+                            core.logic.battle(id, o);
+                            // Empurrar para longe
+                            core.player.x += dx / dist * 50;
+                            core.player.y += dy / dist * 50;
+                            core.network.sync(true);
+                            break;
+                        }
+                    }
+                },
+
+                openAdmin() {
+                    document.getElementById('admin-modal').style.display = 'flex';
+                },
+
+                adminLogin() {
+                    const code = document.getElementById('admin-code').value;
+                    if (code === WORLD.adminCode) {
+                        core.player.admin = true;
+                        core.ui.closeModal('admin');
+                        core.logic.openAdminPanel();
+                    } else {
+                        core.ui.notify("Código incorreto!");
+                    }
+                },
+
+                openAdminPanel() {
+                    const panel = document.getElementById('admin-panel');
+                    const playersDiv = document.getElementById('admin-players');
+                    playersDiv.innerHTML = '';
+                    Object.entries(core.others).forEach(([nick, data]) => {
+                        const div = document.createElement('div');
+                        div.innerHTML = `
+                            <p>${nick} - Força: <input id="str-${nick}" value="${data.s}" type="number"> 
+                            Rebirths: <input id="rb-${nick}" value="${data.r}" type="number">
+                            Mult: <input id="mult-${nick}" value="1" type="number"></p>
+                            <button onclick="core.logic.updatePlayer('${nick}')">Atualizar</button>
+                        `;
+                        playersDiv.appendChild(div);
+                    });
+                    panel.style.display = 'flex';
+                },
+
+                async updatePlayer(nick) {
+                    const str = parseFloat(document.getElementById(`str-${nick}`).value);
+                    const rb = parseInt(document.getElementById(`rb-${nick}`).value);
+                    const mult = parseFloat(document.getElementById(`mult-${nick}`).value);
+                    await update(ref(db, `users/${nick}`), { str, rb });
+                    await update(ref(db, `sim/online/${nick}`), { s: str, r: rb });
+                    // Para mult, talvez salvar como boost extra, mas por agora ignora mult custom
+                    core.ui.notify(`${nick} atualizado!`);
                 }
             },
 
             network: {
                 sync(force = false) {
                     const now = Date.now();
-                    if (force || now - core.player.lastSync > 1000) { // Sync a cada 1s para otimização
+                    if (force || now - core.player.lastSync > 1000) {
                         update(ref(db, `sim/online/${core.player.nick}`), {
                             x: Math.round(core.player.x),
                             y: Math.round(core.player.y),
@@ -546,7 +636,7 @@
                     const logs = document.getElementById('chat-logs');
                     logs.innerHTML = '';
                     if (!data) return;
-                    Object.values(data).sort((a, b) => a.time - b.time).slice(-20).forEach(m => { // Mais mensagens
+                    Object.values(data).sort((a, b) => a.time - b.time).slice(-20).forEach(m => {
                         const div = document.createElement('div');
                         div.innerHTML = `<b style="color:var(--p-red)">${m.n}:</b> ${m.t}`;
                         logs.appendChild(div);
@@ -558,10 +648,11 @@
                     list.innerHTML = '';
                     const sorted = Object.entries(players || {})
                         .sort((a, b) => b[1].s - a[1].s)
-                        .slice(0, 10); // Top 10 agora
+                        .slice(0, 10);
                     
                     sorted.forEach(([id, data], i) => {
-                        list.innerHTML += `<div class="rank-item"><span>${i+1}. ${id}</span><b>${Math.floor(data.s / 1000).toLocaleString()}k</b></div>`;
+                        const abbr = data.s >= 1000 ? (data.s / 1000).toFixed(1) + 'k' : data.s;
+                        list.innerHTML += `<div class="rank-item"><span>${i+1}. ${id}</span><b>${abbr}</b></div>`;
                     });
                 },
                 closeModal(type) {
@@ -583,11 +674,9 @@
                 drawPlayer(x, y, size, name, rb, pet, isMe, ctx, camX, camY) {
                     x -= camX; y -= camY;
 
-                    // Sombreamento
                     ctx.shadowBlur = size / 2;
                     ctx.shadowColor = isMe ? 'rgba(255,71,87,0.5)' : 'rgba(0,0,0,0.3)';
 
-                    // Aura Rebirth aprimorada
                     if (rb > 0) {
                         const gradient = ctx.createRadialGradient(x, y, size, x, y, size + 10);
                         gradient.addColorStop(0, 'transparent');
@@ -596,19 +685,16 @@
                         ctx.beginPath(); ctx.arc(x, y, size + 10, 0, Math.PI*2); ctx.fill();
                     }
 
-                    // Corpo
                     ctx.shadowBlur = 0;
                     ctx.fillStyle = isMe ? '#ff4757' : '#54a0ff';
                     ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI*2); ctx.fill();
 
-                    // Olhos animados (piscar aleatório)
                     if (Math.random() < 0.98) {
                         ctx.fillStyle = "white";
                         ctx.beginPath(); ctx.arc(x - size/3, y - size/4, size/5, 0, Math.PI*2); ctx.fill();
                         ctx.beginPath(); ctx.arc(x + size/3, y - size/4, size/5, 0, Math.PI*2); ctx.fill();
                     }
 
-                    // Pet seguindo com animação
                     if (pet) {
                         const petX = x + Math.sin(Date.now() / 500) * 10;
                         const petY = y + size + 20 + Math.cos(Date.now() / 500) * 5;
@@ -616,7 +702,6 @@
                         ctx.fillText(`🐾 ${pet}`, petX, petY);
                     }
 
-                    // Nome com sombra
                     ctx.fillStyle = "white";
                     ctx.font = `bold ${Math.max(12, size/2.5)}px Arial`;
                     ctx.textAlign = "center";
@@ -634,51 +719,43 @@
                 const ctx = core.ctx;
                 const p = core.player;
 
-                // LOGICA DE MOVIMENTO OTIMIZADA
-                const speed = Math.max(2, 10 - (p.size / 50)); // Mais rápido
+                const speed = Math.max(2, 10 - (p.size / 50));
                 let moved = false;
-                if (core.keys['w']) { p.y -= speed; moved = true; }
-                if (core.keys['s']) { p.y += speed; moved = true; }
-                if (core.keys['a']) { p.x -= speed; moved = true; }
-                if (core.keys['d']) { p.x += speed; moved = true; }
+                if (core.keys['w'] || core.keys['arrowup']) { p.y -= speed; moved = true; }
+                if (core.keys['s'] || core.keys['arrowdown']) { p.y += speed; moved = true; }
+                if (core.keys['a'] || core.keys['arrowleft']) { p.x -= speed; moved = true; }
+                if (core.keys['d'] || core.keys['arrowright']) { p.x += speed; moved = true; }
 
-                // Colisões de Zona dinâmicas
                 WORLD.zones.forEach((z, i) => {
-                    if (i > 0 && p.x > z.x && p.str < z.req) {
+                    if (i > 0 && p.x >= z.x && p.str < z.req) {
                         p.x = z.x - 10;
                         core.ui.notify(`${z.name}: Precisa de ${z.req.toLocaleString()} de força!`);
                     }
                 });
 
-                // Limites do mundo
                 p.x = Math.clamp(p.x, 0, WORLD.size);
                 p.y = Math.clamp(p.y, 0, WORLD.size);
 
                 if (moved) core.network.sync();
 
-                // CAMERA LERP SUAVE
                 core.camera.x += (p.x - core.canvas.width / 2 - core.camera.x) * 0.2;
                 core.camera.y += (p.y - core.canvas.height / 2 - core.camera.y) * 0.2;
 
-                // DESENHO OTIMIZADO (apenas o que está na tela)
                 ctx.clearRect(0, 0, core.canvas.width, core.canvas.height);
 
-                // Zonas visíveis
                 WORLD.zones.forEach(z => {
                     if (z.x - core.camera.x + z.w > 0 && z.x - core.camera.x < core.canvas.width) {
                         core.render.drawZone(z, ctx, core.camera.x, core.camera.y);
                     }
                 });
 
-                // Partículas
                 core.particles = core.particles.filter(part => part.life > 0);
                 core.particles.forEach(part => {
                     part.update(delta);
-                    part.draw(ctx, core.camera.x, core.camera.y); // Adicione cam offset no draw se necessário
+                    part.draw(ctx, core.camera.x, core.camera.y);
                 });
                 ctx.globalAlpha = 1;
 
-                // Outros Jogadores visíveis
                 for (let id in core.others) {
                     if (id === p.nick) continue;
                     const o = core.others[id];
@@ -687,17 +764,17 @@
                     }
                 }
 
-                // Jogador principal
                 core.render.drawPlayer(p.x, p.y, p.size, p.nick, p.rb, p.pet, true, ctx, core.camera.x, core.camera.y);
+
+                core.logic.checkCollisions();
 
                 requestAnimationFrame(() => core.loop());
             }
         };
 
-        // Utilidade clamp
         Math.clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
         window.core = core;
     </script>
 </body>
-                </html>
+    </html>
